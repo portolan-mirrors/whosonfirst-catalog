@@ -61,7 +61,8 @@ Columns change in three ways, all of them recorded in
    decimal strings so that this catalog's files join to each other and to the
    search index with no cast. Empty strings become nulls.
 3. **Seven columns are added**: `level`, `country` (ISO 3166-1 alpha-3
-   derived from WOF's alpha-2), `area_km2` and `perimeter_km` (geodesic),
+   derived from WOF's alpha-2), `area_km2` and `perimeter_km` (geodesic, from
+   pyproj -- see `measure_geodesically` for why not from DuckDB),
    `vertices`, `geometry_repaired`, `geometry_flattened`, and the `bbox`
    covering struct.
 
@@ -163,8 +164,8 @@ SELECT
   NULLIF(s.concord_ke, '')                         AS concordance_keys,
   NULLIF(s.concord_id, '')                         AS concordance_ids,
   NULLIF(s.geom_src, '')                           AS geom_src,
-  round(ST_Area_Spheroid(g.geom) / 1e6, 6)         AS area_km2,
-  round(ST_Perimeter_Spheroid(g.geom) / 1e3, 6)    AS perimeter_km,
+  NULL::DOUBLE                                     AS area_km2,
+  NULL::DOUBLE                                     AS perimeter_km,
   ST_NPoints(g.geom)::INTEGER                      AS vertices,
   g.geometry_repaired                              AS geometry_repaired,
   g.geometry_flattened                             AS geometry_flattened,
@@ -224,6 +225,7 @@ def build(con, collection: str) -> dict:
         row_group_rows=ROW_GROUP_ROWS[collection],
         footer_meta=meta,
         sorting_columns=sorting_columns(intermediate),
+        transform=measure_geodesically,
     )
     intermediate.unlink()
 
@@ -250,6 +252,53 @@ def build(con, collection: str) -> dict:
         "size": size,
         "bbox": bbox,
     }
+
+
+def measure_geodesically(table: "pa.Table") -> "pa.Table":
+    """Fill `area_km2` and `perimeter_km` with pyproj's geodesic measures.
+
+    DuckDB's `ST_Area_Spheroid` and `ST_Perimeter_Spheroid` return **NaN** on
+    a large minority of these geometries, and not because the geometries are
+    broken: measured on the county level, 12,814 of 42,115 features came back
+    NaN, including closed, simple, valid single-ring polygons with finite
+    coordinates such as Camden, New South Wales. `ST_Length_Spheroid` on the
+    exterior ring alone returns NaN for the same features, and so does
+    `ST_Area` after `ST_Transform` to an equal-area projection, so the fault
+    is in DuckDB's geodesic path rather than in the data.
+
+    A NaN area is worse than a missing one. It sorts to the front of an
+    `ORDER BY area_km2 DESC`, it is not caught by an `IS NOT NULL` filter, and
+    GDAL drops the whole attribute on the way into a tile ("NaN of Infinity
+    value found. Skipped"). The first version of this catalog's own locality
+    agent guide opened with a worked query whose top answer was `nan`.
+
+    pyproj's `Geod` is GeographicLib, which is the reference implementation,
+    and it returns a number for every feature: 0 of 42,115 NaN on the same
+    county file, with Camden at 201.263 km2 and Coonamble at 9,915.85 km2,
+    both of which match the councils' published areas. It costs about a
+    minute per 64 million coordinates, which is the right trade.
+
+    A point has zero area and zero perimeter, which is what `Geod` returns
+    for it.
+    """
+    from pyproj import Geod
+    from shapely import wkb as shapely_wkb
+
+    geod = Geod(ellps="WGS84")
+    areas: list[float] = []
+    perimeters: list[float] = []
+    for raw in table.column("geometry").to_pylist():
+        area, perimeter = geod.geometry_area_perimeter(shapely_wkb.loads(raw))
+        areas.append(round(abs(area) / 1e6, 6))
+        perimeters.append(round(perimeter / 1e3, 6))
+    table = table.set_column(
+        table.schema.get_field_index("area_km2"), "area_km2",
+        pa.array(areas, pa.float64()),
+    )
+    return table.set_column(
+        table.schema.get_field_index("perimeter_km"), "perimeter_km",
+        pa.array(perimeters, pa.float64()),
+    )
 
 
 def sorting_columns(src: Path):

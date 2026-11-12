@@ -29,6 +29,7 @@ from __future__ import annotations
 import bisect
 import json
 import statistics
+import subprocess
 import sys
 from pathlib import Path
 
@@ -38,6 +39,7 @@ import pyarrow.parquet as pq  # noqa: E402
 
 from wofcommon import (  # noqa: E402
     NAMES_PATH,
+    WORK,
     NAMES_ROW_GROUP_ROWS,
     human,
     wrap_markdown,
@@ -115,6 +117,33 @@ def column_bytes(path: Path) -> list[tuple[str, int]]:
                 totals.get(col.path_in_schema, 0) + col.total_compressed_size
             )
     return sorted(totals.items(), key=lambda kv: -kv[1])
+
+
+def hyparquet_report() -> str:
+    """Run the Node verification and capture its output, or return "".
+
+    Optional on purpose: the measurement document should still generate on a
+    machine with no Node, and the absence of the section says so by being
+    absent rather than by claiming an untested result.
+    """
+    script = Path(__file__).resolve().parent / "verify_index_hyparquet.mjs"
+    modules = WORK / "node" / "node_modules"
+    if not script.exists() or not modules.is_dir():
+        print("note: skipping the hyparquet read-back (no node_modules)")
+        return ""
+    import os
+
+    env = dict(os.environ, NODE_PATH=str(modules))
+    result = subprocess.run(
+        ["node", str(script), str(NAMES_PATH)],
+        capture_output=True, text=True, env=env, check=False,
+    )
+    if result.returncode != 0:
+        print("note: the hyparquet read-back failed:")
+        print(result.stdout or result.stderr)
+        return ""
+    print("  hyparquet read-back: OK")
+    return result.stdout
 
 
 def main() -> int:
@@ -241,6 +270,29 @@ def main() -> int:
         "pay because consecutive keystrokes share a group.",
         "",
     ]
+    verify = hyparquet_report()
+    if verify:
+        lines += [
+            "## Read back with hyparquet, which is what a browser uses",
+            "",
+            "`tools/verify_index_hyparquet.mjs` opens the built file with",
+            "[hyparquet](https://github.com/hyparam/hyparquet) and",
+            "[hyparquet-compressors](https://github.com/hyparam/hyparquet-compressors),",
+            "counting every byte the reader asks for. PyArrow reading its own",
+            "output proves less than a different implementation reading it,",
+            "and this is the implementation a browser client actually runs.",
+            "The compressors package is **required**: every column chunk is",
+            "zstd.",
+            "",
+            "```",
+            verify.rstrip(),
+            "```",
+            "",
+            "`population` is INT64, so hyparquet hands it back as a BigInt. A",
+            "client sorting on it has to coerce with `Number()`; mixing it",
+            "with a plain number throws.",
+            "",
+        ]
     OUT_MD.write_text(wrap_markdown("\n".join(lines)) + "\n")
     print(f"wrote {OUT_MD.relative_to(REPO)} and {OUT_JSON.relative_to(REPO)}")
     print(

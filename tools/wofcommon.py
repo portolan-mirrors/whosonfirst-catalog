@@ -168,12 +168,20 @@ UPSTREAM_ASSETS = (
         "sha256": "af2810d168f914f8dd6dace4c8e2924d9ef9c446feced4d970854398df2f7d01",
         "built": "2025-10-14T10:19:37Z",
     },
+    # These two carry no `file:size` or `file:checksum`, deliberately. They
+    # are geocode.earth's own live index: the inventory gains an entry every
+    # time a country is rebuilt, and the members manifest changes with it.
+    # Pinning a digest to a file whose whole job is to change would be a
+    # promise this catalog cannot keep, and a reader comparing against a stale
+    # digest would conclude the file was corrupt. `portolan check` warns about
+    # the absence; the warning is correct and the absence is deliberate.
     {
         "key": "upstream-inventory",
         "url": PARQUET_INVENTORY,
         "media_type": "application/json",
         "title": "geocode.earth GeoParquet inventory: vintage, members, digests",
         "roles": ["metadata", "source"],
+        "mutable": True,
     },
     {
         "key": "upstream-members",
@@ -181,6 +189,7 @@ UPSTREAM_ASSETS = (
         "media_type": "application/json",
         "title": "The 260 member repositories and commits of this GeoParquet build",
         "roles": ["metadata", "source"],
+        "mutable": True,
     },
 )
 

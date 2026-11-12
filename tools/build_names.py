@@ -71,6 +71,7 @@ the same offsets, one pointer resolves against either file.
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import sys
@@ -614,7 +615,85 @@ def footer_bytes(path: Path) -> tuple[int, int]:
     return footer, size - end_of_data - footer
 
 
+def rewrite_manifest() -> int:
+    """Refresh index.json against the files on disk, without rebuilding.
+
+    The manifest records every boundary file's size and row count, so a
+    boundary rebuild makes it stale even when the index itself is unchanged —
+    which it is whenever the rebuild did not move a row. Rebuilding 9.5
+    million rows to refresh a few integers is five minutes nobody needs to
+    spend, so this path exists. It re-reads the index's own footer too, so it
+    cannot quietly carry forward a stale size for the index itself.
+    """
+    if not NAMES_PATH.exists():
+        sys.exit(f"missing {NAMES_PATH}; run without --manifest-only first")
+    md = pq.ParquetFile(NAMES_PATH).metadata
+    counts = count_rows()
+    index = {
+        "rows": md.num_rows,
+        "row_groups": md.num_row_groups,
+        "size": NAMES_PATH.stat().st_size,
+        "bbox": whole_bbox_from_metadata(),
+    }
+    return write_manifest(index, counts)
+
+
+def count_rows() -> dict:
+    """Primary, alternative and dropped counts, read back from the index."""
+    import pyarrow.compute as compute
+
+    table = pq.read_table(NAMES_PATH, columns=["alt_of"])
+    alt = compute.sum(compute.is_valid(table.column("alt_of"))).as_py() or 0
+    return {
+        "primary": table.num_rows - alt,
+        "alt": alt,
+        # The build drops a place whose name folds to nothing. Rebuilding is
+        # the only way to recount it, so the manifest's existing value is
+        # carried forward rather than guessed.
+        "dropped_unnamed": existing_manifest().get("dropped_unnamed", 0),
+    }
+
+
+def existing_manifest() -> dict:
+    out = manifest_path()
+    if out.exists():
+        return json.loads(out.read_text())
+    return {}
+
+
+def manifest_path() -> Path:
+    return (
+        Path(__file__).resolve().parents[1] / "catalog" / "names"
+        / NAMES_MANIFEST_NAME
+    )
+
+
+def whole_bbox_from_metadata() -> list[float]:
+    meta = pq.ParquetFile(NAMES_PATH).schema_arrow.metadata or {}
+    doc = json.loads(meta[b"geo"])
+    return list(doc["columns"][doc["primary_column"]]["bbox"])
+
+
+def write_manifest(index: dict, counts: dict) -> int:
+    doc = manifest(index, counts)
+    out = manifest_path()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(doc, indent=2) + "\n")
+    repo = Path(__file__).resolve().parents[1]
+    print(f"  {out.relative_to(repo)}: {out.stat().st_size:,} bytes")
+    print(f"  bbox: {[round(v, 6) for v in index['bbox']]}")
+    return 0
+
+
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--manifest-only", action="store_true",
+        help="refresh index.json from the files on disk, without rebuilding",
+    )
+    if ap.parse_args().manifest_only:
+        return rewrite_manifest()
+
     con = connect()
     try:
         print("stage 1/4: places and their row offsets")
@@ -632,22 +711,12 @@ def main() -> int:
     index = write_index()
     SORTED.unlink(missing_ok=True)
 
-    # The manifest is metadata, not data: it is a kilobyte of JSON a client
-    # fetches before the index, so it lives in git under `catalog/` and
+    # The manifest is metadata, not data: it is a few kilobytes of JSON a
+    # client fetches before the index, so it lives in git under `catalog/` and
     # publishes with the rest of the catalog rather than through
     # tools/upload_data.py.
-    doc = manifest(index, counts)
-    out = (
-        Path(__file__).resolve().parents[1] / "catalog" / "names"
-        / NAMES_MANIFEST_NAME
-    )
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(doc, indent=2) + "\n")
-    print(f"  {out.relative_to(Path(__file__).resolve().parents[1])}: "
-          f"{out.stat().st_size:,} bytes")
-    print(f"  bbox: {[round(v, 6) for v in index['bbox']]}")
     assert pc  # used by shrink_bbox_float32 through pyarrow.compute
-    return 0
+    return write_manifest(index, counts)
 
 
 if __name__ == "__main__":

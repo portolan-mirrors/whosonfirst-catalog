@@ -97,3 +97,47 @@ the group size would roughly double the footer, which a client pays
 on every cold start, to halve a per-keystroke cost it mostly does not
 pay because consecutive keystrokes share a group.
 
+## Read back with hyparquet, which is what a browser uses
+
+`tools/verify_index_hyparquet.mjs` opens the built file with
+[hyparquet](https://github.com/hyparam/hyparquet) and
+[hyparquet-compressors](https://github.com/hyparam/hyparquet-compressors),
+counting every byte the reader asks for. PyArrow reading its own
+output proves less than a different implementation reading it,
+and this is the implementation a browser client actually runs.
+The compressors package is **required**: every column chunk is
+zstd.
+
+```
+file          wof_names.parquet
+size          603.92 MB
+rows          9,478,779
+row groups    741
+columns       25
+footer read   1.71 MB in 2 request(s), 330 ms
+sorted_by     [{"column_idx":1,"descending":false,"nulls_first":true}]
+kv metadata   cnmw:catalog_version=whosonfirst-admin-parquet-2025-04-07, wof:distribution=whosonfirst-data-admin, wof:parquet_built=2025-04-07T13:07:59Z, wof:source_url=https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet, cnmw:role=names-index
+
+prefix "zur"  groups 1  fetched 641.5 KB in 2 request(s), 647 ms  rows 371  places 347
+  top: Zürich [L1 CHE, Switzerland] | Zurrico [L1 MLT, Malta] | Zurmi [L2 NGA, Zamfara]
+
+prefix "sao pa"  groups 1  fetched 594.1 KB in 2 request(s), 315 ms  rows 89  places 88
+  top: São Paulo [L1 BRA, Southeast] | São Patrício [L1 VCT, Saint Vincent and the Grenadines] | Sao Patricio [L2 BRA, Goias]
+
+prefix "kyoto"  groups 1  fetched 608.6 KB in 2 request(s), 307 ms  rows 8  places 5
+  top: Kyoto [L1 JPN, Japan] | Kyōto [L2 JPN, Kyoto] | Kyōto [L4 JPN, Kyoto]
+
+prefix "købe"  groups 1  fetched 0 B in 0 request(s), 258 ms  rows 7  places 7
+  top: København K [L5 DNK, Copenhagen] | København N [L5 DNK, Copenhagen] | København NV [L5 DNK, Copenhagen]
+
+prefix "wa"  groups 5  fetched 2.99 MB in 10 request(s), 695 ms  rows 47619  places 46425
+  top: Wallis and Futuna [L0 FRA] | Watykan [L0 VAT] | Wake [L0 XX]
+
+OK: required columns present, sort declared, row group ranges non-overlapping
+total read    6.54 MB in 18 request(s)
+```
+
+`population` is INT64, so hyparquet hands it back as a BigInt. A
+client sorting on it has to coerce with `Number()`; mixing it
+with a plain number throws.
+

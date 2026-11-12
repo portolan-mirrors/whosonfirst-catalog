@@ -200,6 +200,15 @@ def upstream_assets() -> dict:
             asset["file:size"] = spec["size"]
         if "sha256" in spec:
             asset["file:checksum"] = multihash_sha256(spec["sha256"])
+        if spec.get("mutable"):
+            asset["description"] = (
+                "No `file:size` or `file:checksum`, deliberately: this is "
+                "geocode.earth's live index, which gains an entry every time "
+                "a country is rebuilt. Pinning a digest to a file whose whole "
+                "job is to change would be a promise this catalog cannot "
+                "keep. It is also the authoritative record of what vintage "
+                "every upstream file is, which no URL carries."
+            )
         if "built" in spec:
             asset["description"] = (
                 f"geocode.earth built this on {spec['built']}. There are no "
