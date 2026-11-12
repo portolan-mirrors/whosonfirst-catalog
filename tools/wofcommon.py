@@ -109,11 +109,14 @@ UPSTREAM_NEWER_WOF_COMMIT = (
 UPSTREAM_NEWER_WOF_COMMIT_DATE = "2025-10-14T04:33:58Z"
 EXTRACTION_DATE = "2026-11-12"
 
-# The version string the geocoder pins an index against. It appears in the
-# index manifest and in the footer metadata of every file this build writes.
-# `latest` is the only vintage geocode.earth publishes for the combined
-# distribution, so the object's own Last-Modified is what pins the bytes.
-CATALOG_VERSION = "whosonfirst-admin-2025-10-30"
+# The version string the geocoder pins an index against (design doc §6.4). It
+# appears in the index manifest and in the footer metadata of every file this
+# build writes, and all of them must agree.
+#
+# It names the date geocode.earth *built the GeoParquet*, from that file's own
+# inventory entry -- not the HTTP Last-Modified, which is a bucket-migration
+# timestamp, and not today's date, which would say nothing about the data.
+CATALOG_VERSION = "whosonfirst-admin-parquet-2025-04-07"
 CNMW_VERSION_KEY = "cnmw:catalog_version"
 
 
@@ -197,6 +200,166 @@ NAME_LANGS = (
 )
 
 ZSTD_LEVEL = 15
+
+
+# ---------------------------------------------------------------------------
+# Layout targets
+# ---------------------------------------------------------------------------
+# Rows per row group, chosen per collection from the measured vertex count per
+# feature so that one row group lands between about 1 and 2 MB. A client that
+# wants one place's geometry fetches about that much instead of the median
+# 38 MiB and worst-case 285 MiB the upstream file's 65,536-row groups cost
+# (docs/upstream-measurements.md).
+#
+# The measured vertex counts behind these numbers, from
+# tools/distributions.sql, are what make them differ by three orders of
+# magnitude across six levels:
+#
+#   level  features    vertices  median  p95      point geometries
+#       0       353       7.52M   4,866   77,813   0
+#       1     4,362      29.33M   1,150   25,717   26
+#       2    42,115      64.34M     490    5,254   443
+#       3   164,756      76.40M     210    1,721   35,741
+#       4 4,796,292     158.30M       1      157   4,031,001  (84%)
+#       5   397,416       9.42M       1       75     334,785  (84%)
+#
+# tools/build_boundaries.py prints the achieved figure on every run and warns
+# when a level leaves the band.
+ROW_GROUP_ROWS = {
+    "country": 4,
+    "region": 16,
+    "county": 64,
+    "localadmin": 256,
+    "locality": 2048,
+    "neighbourhood": 4096,
+}
+
+# The display-simplified companions hold the same rows in the same order and
+# the same groups, so a consumer reads row i of either file from group i // n.
+DISPLAY_ROW_GROUP_ROWS = ROW_GROUP_ROWS
+
+# Which levels get a display-simplified companion, and the measurement that
+# decided it. Levels 0-3 have a median of 210 to 4,866 vertices per feature
+# and a 95th percentile of 1,721 to 77,813, so drawing one of them from full
+# resolution is slow and a simplified companion earns its second file. Levels
+# 4 and 5 have a median of **one** vertex -- 84% of their features are points
+# -- and a 95th percentile of 157 and 75, so there is nothing there to
+# simplify and a second file would only add a fetch.
+DISPLAY_LEVELS = (0, 1, 2, 3)
+
+# Display simplification. The tolerance is per feature, not per collection:
+#
+#     tol = least(SIMPLIFY_TOLERANCE[collection],
+#                 bbox_diagonal * SIMPLIFY_SHARE)
+#
+# and the outward buffer uses the same value. A single absolute tolerance
+# cannot serve both Russia and Monaco: at a flat tolerance the small feature's
+# outline moves by most of its own width. Scaling by the feature's own extent
+# is what keeps every feature above the containment floor, and
+# tools/build_display.py verifies containment per feature and reports the
+# worst case.
+SIMPLIFY_SHARE = 0.004
+SIMPLIFY_TOLERANCE = {
+    "country": 0.03,
+    "region": 0.01,
+    "county": 0.004,
+    "localadmin": 0.002,
+}
+
+# The search index is sorted by name_norm, so a client that wants a name
+# prefix fetches a contiguous run of row groups. The target is bytes, not
+# rows.
+#
+# The index contract asks for 100-150 KiB per row group, and that is right for
+# the index it was measured on: 2.5 MB, where the Parquet footer is a rounding
+# error. It is the wrong target at this scale. The footer carries one thrift
+# record per column per row group, and a range client reads the whole footer
+# before it can read anything, so shrinking the groups grows what the first
+# keystroke costs. The sibling Overture index measured the knee at 6,400 rows
+# for 5.6M rows; this index is the same order of magnitude, so it takes the
+# same figure, and tools/measure_index.py reprints the table for the file
+# actually built.
+NAMES_ROW_GROUP_ROWS = 6400
+NAMES_ROW_GROUP_TARGET_KIB = (400, 560)
+
+
+def staged_source() -> Path:
+    return SOURCES / UPSTREAM_PARQUET_NAME
+
+
+def boundary_path(collection: str) -> Path:
+    return PUBLISH / collection / f"wof_{collection}.parquet"
+
+
+def display_path(collection: str) -> Path:
+    return PUBLISH / collection / f"wof_{collection}_display.parquet"
+
+
+def pmtiles_path(collection: str) -> Path:
+    return PUBLISH / collection / f"{collection}.pmtiles"
+
+
+NAMES_PATH = PUBLISH / "names" / "wof_names.parquet"
+NAMES_MANIFEST_NAME = "index.json"
+
+
+def stream_write(
+    src: Path,
+    out: Path,
+    *,
+    row_group_rows: int,
+    footer_meta: dict[bytes, bytes],
+    batch_rows: int | None = None,
+    transform=None,
+    sorting_columns=None,
+    compression_level: int = ZSTD_LEVEL,
+):
+    """Rewrite a Parquet file with exact row groups, a batch at a time.
+
+    The whole table is never held in memory. That is not only thrift: DuckDB's
+    Arrow appender refuses a binary column whose offsets exceed 2 GiB, which
+    the locality geometry column does on its own, and streaming avoids the
+    limit rather than switching to 64-bit offsets and changing the published
+    column types.
+
+    `batch_rows` is rounded down to a multiple of `row_group_rows`, so every
+    group written is exactly full and a row number alone tells a consumer
+    which group a row is in. That is what makes the search index's
+    `geometry_ref` a single range read.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    if batch_rows is None:
+        batch_rows = row_group_rows * max(1, 65_536 // row_group_rows)
+    batch_rows = max(row_group_rows, (batch_rows // row_group_rows) * row_group_rows)
+    reader = pq.ParquetFile(src)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.unlink(missing_ok=True)
+    writer = None
+    try:
+        for batch in reader.iter_batches(batch_size=batch_rows):
+            table = pa.Table.from_batches([batch])
+            if transform is not None:
+                table = transform(table)
+            if writer is None:
+                writer = pq.ParquetWriter(
+                    out,
+                    table.schema.with_metadata(footer_meta),
+                    compression="zstd",
+                    compression_level=compression_level,
+                    write_statistics=True,
+                    write_page_index=True,
+                    version="2.6",
+                    sorting_columns=sorting_columns,
+                )
+            writer.write_table(
+                table.cast(writer.schema), row_group_size=row_group_rows
+            )
+    finally:
+        if writer is not None:
+            writer.close()
+    return pq.ParquetFile(out).metadata
 
 
 # ---------------------------------------------------------------------------
@@ -415,6 +578,121 @@ def wrap_markdown(text: str, width: int = 79) -> str:
             or [line]
         )
     return "\n".join(out)
+
+
+def connect(*, memory_limit: str = "12GB", threads: int | None = None):
+    """A DuckDB connection configured for this build.
+
+    `preserve_insertion_order` is off by default, which is right for an
+    unordered aggregate and wrong for any write whose row order is
+    load-bearing. `copy_ordered` turns it back on for the duration of such a
+    write.
+    """
+    import duckdb
+
+    con = duckdb.connect()
+    con.execute("INSTALL spatial; LOAD spatial;")
+    con.execute("SET preserve_insertion_order = false;")
+    con.execute(f"SET memory_limit='{memory_limit}';")
+    WORK.mkdir(parents=True, exist_ok=True)
+    con.execute(f"SET temp_directory='{(WORK / 'duckdb-tmp').as_posix()}';")
+    if threads:
+        con.execute(f"SET threads={threads};")
+    con.execute("SET enable_progress_bar=false;")
+    return con
+
+
+def copy_ordered(con, sql: str, out: Path, *, level: int = 3) -> None:
+    """Run an ORDER BY query and write the result to one Parquet file in order.
+
+    `preserve_insertion_order` is forced on for the write, because a parallel
+    single-file write may emit batches out of order and the row order of a
+    boundary file is load-bearing: the search index's `geometry_ref` names a
+    row number in it, and the display companion holds the same rows at the
+    same offsets.
+
+    The default compression level is low because the usual caller is writing
+    an intermediate that is read once and deleted.
+    """
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.unlink(missing_ok=True)
+    con.execute("SET preserve_insertion_order = true;")
+    try:
+        con.execute(
+            f"COPY ({sql}) TO '{out.as_posix()}' "
+            f"(FORMAT parquet, COMPRESSION zstd, COMPRESSION_LEVEL {level})"
+        )
+    finally:
+        con.execute("SET preserve_insertion_order = false;")
+
+
+# ---------------------------------------------------------------------------
+# ISO 3166-1 alpha-2 to alpha-3
+# ---------------------------------------------------------------------------
+# WOF's `country` property is "A two-letter country code from ISO 3166"
+# (attested: https://whosonfirst.org/docs/properties/wof/). The index-file
+# contract the geocoder reads declares `country` as alpha-3, and both sibling
+# indexes publish alpha-3, so a widget configurable to any of the three can
+# filter on one code system. This index therefore carries both: the derived
+# alpha-3 under `country`, and WOF's own two-letter code byte for byte under
+# `country_iso2`.
+#
+# The mapping comes from pycountry, which packages the official ISO 3166-1
+# table. WOF also mints six codes of its own that ISO does not have
+# (attested: https://github.com/whosonfirst/whosonfirst-placetypes):
+#
+#   XK  Kosovo ("We just followed Geonames' lead")
+#   XN  Null Island
+#   XS  Somaliland
+#   XX  "a place disputed by two or more (ISO) countries"
+#   XY  "an ISO country that has yet to be determined (by us)"
+#   XZ  "the ISO country code equivalent of wof:parent_id=-2"
+#
+# None of those has an alpha-3. They are carried through unchanged, counted,
+# and reported by the build.
+WOF_SYNTHETIC_COUNTRIES = {
+    "XK": "Kosovo, following GeoNames",
+    "XN": "Null Island",
+    "XS": "Somaliland",
+    "XX": "disputed by two or more ISO countries",
+    "XY": "an ISO country yet to be determined",
+    "XZ": "no country; the equivalent of wof:parent_id = -2",
+}
+
+
+def register_iso3166(con) -> int:
+    """Create an `iso3166` lookup table on a connection. Returns its size."""
+    import pycountry
+
+    rows = [(c.alpha_2, c.alpha_3) for c in pycountry.countries]
+    con.execute(
+        "CREATE OR REPLACE TEMP TABLE iso3166 "
+        "(alpha_2 VARCHAR, alpha_3 VARCHAR)"
+    )
+    con.executemany("INSERT INTO iso3166 VALUES (?, ?)", rows)
+    return len(rows)
+
+
+def pycountry_version() -> str:
+    import pycountry
+
+    return getattr(pycountry, "__version__", "unknown")
+
+
+def footer_metadata(extra: dict[str, str] | None = None) -> dict[bytes, bytes]:
+    """Key-value footer metadata every data file this catalog writes carries.
+
+    The version pin the geocoder checks (design doc §6.4) lives here, in the
+    index manifest, and in every boundary file, and all three have to agree.
+    """
+    meta = {
+        CNMW_VERSION_KEY: CATALOG_VERSION,
+        "wof:distribution": UPSTREAM_REPO,
+        "wof:parquet_built": UPSTREAM_PARQUET_BUILT,
+        "wof:source_url": UPSTREAM_PARQUET,
+    }
+    meta.update(extra or {})
+    return {k.encode("utf-8"): v.encode("utf-8") for k, v in meta.items()}
 
 
 def human(n: float) -> str:

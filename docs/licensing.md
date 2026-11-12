@@ -116,7 +116,7 @@ is a two-letter country code and a dialling code.
 sources spec it contributes no geometry. There is therefore **no ODbL
 share-alike obligation on this catalog**, which is the whole reason it is
 worth publishing beside the
-[ODbL Overture one](https://source.coop/portolan-mirrors/cn-geocoder-overture).
+[ODbL Overture one](https://source.coop/portolan-mirrors/cn-gazetteer-overture).
 
 ## What the data actually carries
 
