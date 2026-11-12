@@ -543,10 +543,13 @@ def boundary_agents(con, collection: str, facts: dict) -> str:
         "active-record filter needs all four. If currency matters, read the "
         f"[SQLite distribution]({UPSTREAM_SQLITE}).",
         "",
-        "**Area is reproducible, not official.** `area_km2` is "
-        "`ST_Area_Spheroid` on the geometry in this file. For a place whose "
-        "outline was carried up from a coarser source, that is not its "
-        "surveyed area.",
+        "**Area is reproducible, not official.** `area_km2` is pyproj's "
+        "geodesic measure on the geometry in this file — not DuckDB's "
+        "`ST_Area_Spheroid`, which returns NaN for a large minority of these "
+        "geometries **[derived]**. For a place whose outline was carried up "
+        "from a coarser source, it is not that place's surveyed area, and it "
+        "measures land only, so a country comes out a little under its "
+        "published figure.",
         "",
         "## Example queries",
         "",

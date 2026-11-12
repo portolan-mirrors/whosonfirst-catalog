@@ -67,6 +67,7 @@ python3 tools/build_names.py         # -> the index and its manifest, ~5 min
 python3 tools/build_pmtiles.py       # -> 7 PMTiles archives
 python3 tools/measure_index.py       # -> docs/index-measurements.md
 python3 tools/make_styles.py         # -> the style JSONs
+python3 tools/make_thumbnails.py     # -> 7 thumbnails
 python3 tools/make_collections.py    # -> 7 collection.json
 python3 tools/make_docs.py           # -> 14 README and AGENTS files
 ```

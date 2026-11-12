@@ -202,7 +202,7 @@ fraction of that.
 
 ## How this catalog was built
 
-Ten scripts in the
+Eleven scripts in the
 [source repository](https://github.com/portolan-mirrors/whosonfirst-catalog/tree/main/tools),
 each runnable on its own:
 
@@ -215,6 +215,7 @@ python3 tools/build_names.py         # -> the index and its manifest
 python3 tools/build_pmtiles.py       # -> 7 PMTiles archives
 python3 tools/measure_index.py       # -> docs/index-measurements.md
 python3 tools/make_styles.py         # -> the style JSONs
+python3 tools/make_thumbnails.py     # -> 7 thumbnails
 python3 tools/make_collections.py    # -> 7 collection.json
 python3 tools/make_docs.py           # -> 14 README and AGENTS files
 ```
@@ -227,7 +228,8 @@ The tool chosen at each step, and why:
 | step | tool | why that one |
 |---|---|---|
 | The download | `curl`, no resume | The host sometimes answers a `Range` request with a 200 and the whole body, so `curl -C -` appended a second copy and produced 9,164,361,132 bytes where 5,948,636,588 was expected. Each attempt starts over and the size is checked against the host's own `Content-Length`. |
-| Reshaping and measuring | DuckDB 1.4 with `spatial` | `ST_Area_Spheroid`, `ST_NPoints` and the geometry repair in one pass over 5.4M rows. |
+| Reshaping | DuckDB 1.4 with `spatial` | `ST_NPoints`, the bbox, the ISO join and the geometry repair in one pass over 5.4M rows. |
+| Geodesic area and perimeter | pyproj `Geod` | DuckDB's `ST_Area_Spheroid` returns NaN for a large minority of these geometries — 12,814 of 42,115 counties — including closed, simple, valid polygons. pyproj is GeographicLib and returns a number for every one. |
 | The Parquet write | PyArrow, streamed | The only writer here that honours an exact small row group size and writes the page index. Streaming also avoids DuckDB's 2 GiB Arrow binary-offset limit, which the locality geometry column exceeds on its own. |
 | Geometry repair | DuckDB `ST_MakeValid` + `ST_CollectionExtract(..., 3)` | Applied only where `ST_IsValid` is false, so 5,404,814 of 5,405,294 geometries pass through unchanged. |
 | Display geometry | `ST_SimplifyPreserveTopology` then `ST_Buffer` | Buffering outward is what makes the result safe as a spatial filter. Two quadrant segments, or the buffer puts back the coordinates simplification removed. |

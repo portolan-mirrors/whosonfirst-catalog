@@ -25,7 +25,7 @@ catalog adds are built by `tools/` and live in object storage. Read
 
 Most Portolan mirrors copy the upstream bytes. This one does not. Its boundary
 assets are geocode.earth's own URLs, because geocode.earth already serves them
-over HTTPS with range requests and permissive CORS, and copying 5.5 GB to say
+over HTTPS with range requests and permissive CORS, and copying 5.5 GiB to say
 the same thing twice would make this catalog a staler duplicate of a file that
 is already cloud-native.
 
@@ -103,6 +103,23 @@ Two traps specific to this catalog:
   older than the SQLite, SpatiaLite, GeoJSON-bundle and PMTiles builds of the
   same repository. Any count this catalog quotes is a count of the GeoParquet
   vintage, and the prose says so.
+
+### Every number is measured, including the ones that contradict a tool
+
+Two defects in this catalog's own output were found by reading its own
+generated prose, and both are now gates:
+
+- **DuckDB's `ST_Area_Spheroid` returns NaN** for a large minority of these
+  geometries, so `area_km2` comes from pyproj's `Geod`. A NaN sorts to the
+  front of an `ORDER BY ... DESC`, survives an `IS NOT NULL` filter and is
+  dropped by GDAL on the way into a tile.
+- **The name fold must strip `\p{M}`, not just non-spacing marks.** A
+  JavaScript client stripping `/\p{M}/gu` folds a Bengali name differently
+  from a Python filter on `unicodedata.combining()`, and then its keystrokes
+  never match the sorted column.
+
+If a generated document says something surprising, check it against the data
+before assuming the document is wrong.
 
 ### Licensing is a mix, and the catalog says so
 

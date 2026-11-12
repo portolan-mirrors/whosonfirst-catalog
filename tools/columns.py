@@ -266,15 +266,19 @@ BOUNDARY_COLUMNS: list[tuple[str, str, str, str]] = [
     ),
     (
         "area_km2", "double", "derived",
-        "Geodesic area in square kilometres, from DuckDB's "
-        "`ST_Area_Spheroid`. Reproducible, not official: it is measured on "
+        "Geodesic area in square kilometres, from pyproj's `Geod`, which is "
+        "GeographicLib. **Not** from DuckDB's `ST_Area_Spheroid`, which "
+        "returns NaN for a large minority of these geometries — 12,814 of "
+        "42,115 counties — including closed, simple, valid polygons with "
+        "finite coordinates. Reproducible, not official: it is measured on "
         "the geometry in this file, which for a feature whose outline was "
-        "carried up from a coarser source is not that place's surveyed area. "
-        "A point feature is 0.",
+        "carried up from a coarser source is not that place's surveyed area, "
+        "and it measures land only, so a country comes out a little under "
+        "its published figure. A point feature is 0.",
     ),
     (
         "perimeter_km", "double", "derived",
-        "Geodesic perimeter in kilometres, from `ST_Perimeter_Spheroid`. "
+        "Geodesic perimeter in kilometres, from the same pyproj `Geod` call. "
         "Paired with `area_km2` it gives a compactness measure without "
         "reprojecting anything.",
     ),

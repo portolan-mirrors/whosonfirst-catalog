@@ -83,6 +83,12 @@ The useful form is not the website. It is
 - rendered at
   [whosonfirst.org/docs/sources/list/](https://whosonfirst.org/docs/sources/list/)
 
+A copy taken on 2026-11-12 is published with this catalog, at
+`_assets/whosonfirst/sources-spec-latest.json`, and is an asset of every
+collection — so a reader checking whether `geom_src = 'geonames'` really
+means CC BY can read the record rather than trust this page. Who's On First's
+own `LICENSE.md` and the canonical placetype spec are beside it.
+
 Each record carries, per
 [whosonfirst.org/docs/sources/](https://whosonfirst.org/docs/sources/):
 

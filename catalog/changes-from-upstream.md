@@ -145,8 +145,8 @@ Nothing else is renamed, and no value is edited.
 |---|---|
 | `level` | this catalog's 0-to-5 mapping of `placetype`. WOF publishes no level |
 | `country` | ISO 3166-1 alpha-3, from WOF's two-letter code through pycountry's ISO table |
-| `area_km2` | geodesic, `ST_Area_Spheroid` |
-| `perimeter_km` | geodesic, `ST_Perimeter_Spheroid` |
+| `area_km2` | geodesic, from pyproj's `Geod` (GeographicLib) |
+| `perimeter_km` | geodesic, from the same call |
 | `vertices` | `ST_NPoints`. A value of 1 means the geometry is a point |
 | `geometry_repaired` | whether this build rebuilt the geometry |
 | `geometry_flattened` | whether this build dropped a Z coordinate |
@@ -154,6 +154,20 @@ Nothing else is renamed, and no value is edited.
 Plus the `bbox` covering struct, declared in GeoParquet 1.1 `covering`
 metadata so a reader can prune row groups spatially without decoding any
 geometry.
+
+`area_km2` and `perimeter_km` come from pyproj rather than from DuckDB for a
+measured reason: `ST_Area_Spheroid` and `ST_Perimeter_Spheroid` returned
+**NaN** for 12,814 of 42,115 counties, 859 of 4,362 regions and 77 of 353
+countries, and not because the geometries are broken — Camden, New South
+Wales is a closed, simple, valid single-ring polygon with 1,925 finite
+coordinates, and `ST_Length_Spheroid` on its exterior ring alone comes back
+NaN too. pyproj's `Geod` is GeographicLib, and it returns a number for every
+feature: Camden at 201.263 km² and Coonamble at 9,915.85 km², both matching
+the councils' published areas.
+
+These are **land** areas, measured on the outline in the file, so a country
+comes out a little under its published figure: Russia 16,975,473 km²
+against a published 17.1 million.
 
 ### One GeoParquet per level, laid out for a single-place fetch
 
