@@ -177,8 +177,8 @@ End to end, with no server.
 2. **Range-request the index.** It is sorted by `name_norm`, a folded form of
    the name, so a typed prefix lives in a contiguous run of row groups that a
    client finds by binary search over the footer's statistics. Measured over
-   all 200,087 two-character prefixes that occur: a prefix touches a median of
-   one row group.
+   all 200,734 two-character prefixes that occur: a prefix touches a
+   median of one row group and at most 24.
 3. **Rank the hits.** `name_dupes` says how many places in the world share the
    folded name, `population` and `min_zoom` rank them, `parent_name`
    disambiguates them, and `bbox` moves the camera with no further fetch.

@@ -132,7 +132,7 @@ carry meaning a consumer should see; see the column descriptions.
 | `placelocal` | `placetype_local` | it is WOF's `wof:placetype_local` |
 | `country_id`, `region_id`, `county_id` | `country_wof_id`, `region_wof_id`, `county_wof_id` | they hold WOF ids, not ISO or census codes |
 | `gn_id`, `wd_id` | `geonames_id`, `wikidata_id` | the abbreviations are not self-explanatory |
-| `concord_ke`, `concord_id` | `concordance_keys`, `concordance_ids` | truncated upstream to fit a shapefile field-name limit |
+| `concord_ke`, `concord_id` | `concordance_keys`, `concordance_ids` | `concord_ke` is a truncation upstream; why it is truncated is not documented |
 | `geometry_bbox` | `bbox` | the GeoParquet `covering` name is read from the metadata either way |
 
 Nothing else is renamed, and no value is edited.
@@ -177,10 +177,10 @@ groups of 65,536 rows, no declared sort order in any of them, and 89% of its
 
 | | compressed geometry chunk |
 |---|---|
-| minimum | 979.1 KB |
-| median | 38.4 MB |
-| 95th percentile | 168.9 MB |
-| maximum | 284.6 MB |
+| minimum | 979.1 KiB |
+| median | 38.4 MiB |
+| 95th percentile | 168.9 MiB |
+| maximum | 284.6 MiB |
 
 (From `docs/upstream-measurements.md` in the
 [source repository](https://github.com/portolan-mirrors/whosonfirst-catalog),
@@ -201,12 +201,12 @@ a Parquet page index and a `cnmw:catalog_version` footer pin.
 
 | collection | rows | row groups | rows per group | per group |
 |---|---|---|---|---|
-| `country` | 353 | 89 | 4 | 708 KB |
-| `region` | 4,362 | 273 | 16 | 795 KB |
-| `county` | 42,115 | 659 | 64 | 785 KB |
-| `localadmin` | 164,756 | 644 | 256 | 1.3 MB |
-| `locality` | 4,796,292 | 2,342 | 2,048 | 642 KB |
-| `neighbourhood` | 397,416 | 98 | 4,096 | 1.0 MB |
+| `country` | 353 | 89 | 4 | 708.2 KiB |
+| `region` | 4,362 | 273 | 16 | 795.7 KiB |
+| `county` | 42,115 | 659 | 64 | 785.1 KiB |
+| `localadmin` | 164,756 | 644 | 256 | 1.3 MiB |
+| `locality` | 4,796,292 | 2,342 | 2,048 | 642.5 KiB |
+| `neighbourhood` | 397,416 | 98 | 4,096 | 1.0 MiB |
 
 Every group is exactly full, so a row number alone says which group a row is
 in — which is what makes the index's `geometry_ref` a single range read.
@@ -243,10 +243,10 @@ Measured containment, per feature, against the full-resolution polygon:
 
 | collection | size | share of the full file | polygons fully contained | below 99% | worst |
 |---|---|---|---|---|---|
-| `country` | 5.1 MB | 8.3% | 295 of 353 | 0 | 0.9971 |
-| `region` | 21.8 MB | 10.3% | 4,126 of 4,336 | 1 | 0.9890 |
-| `county` | 107.2 MB | 21.2% | 40,813 of 41,672 | 0 | 0.9985 |
-| `localadmin` | 219.9 MB | 26.2% | 126,759 of 129,015 | 0 | 0.9978 |
+| `country` | 5.1 MiB | 8.3% | 295 of 353 | 0 | 0.9971 |
+| `region` | 21.8 MiB | 10.3% | 4,126 of 4,336 | 1 | 0.9890 |
+| `county` | 107.2 MiB | 21.2% | 40,813 of 41,672 | 0 | 0.9985 |
+| `localadmin` | 219.9 MiB | 26.1% | 126,759 of 129,015 | 0 | 0.9978 |
 
 The one feature below 99% is **Chuuk**, a region of the Federated States of
 Micronesia made of scattered small islands, where the simplification drops
@@ -261,18 +261,20 @@ with `tippecanoe -zg --no-tile-size-limit`. Measured tile sizes:
 | zoom | tile | bytes |
 |---|---|---|
 | 0 | 0/0 | 15,671,392 |
-| 1 | 0/0 | 12,705,958 |
+| 1 | 1/0 | 16,099,396 |
 | 2 | 2/1 | 24,260,389 |
 | 3 | 4/2 | 25,954,206 |
 | 4 | 8/5 | 24,769,395 |
 | 5 | 16/10 | 9,255,247 |
+| 6 | 33/21 | 3,544,827 |
+| 7 | 66/43 | 1,532,126 |
 | 8 | 133/86 | 460,379 |
 | 9 | 267/172 | 153,862 |
 
-A whole-world first view that costs 15.7 MB is not something a browser tab
-opens, and the archive also reports dropping 4,412,845 features by rate at
-zoom 0 to fit what it does carry — so the low zooms are heavy *and*
-incomplete.
+A whole-world first view that costs 15,671,392 bytes is not something a
+browser tab opens, and the archive also reports dropping 4,412,845 features
+by rate at zoom 0 to fit what it does carry — so the low zooms are heavy
+*and* incomplete.
 
 The archives here are one per level, capped at 400 KB per tile. They also
 carry one derived attribute, `geom_src_group`, which folds the long tail of
