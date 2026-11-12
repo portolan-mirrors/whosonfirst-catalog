@@ -121,6 +121,62 @@ SOURCE_NAME = "whosonfirst-admin"
 # cost with no benefit. Measured: statistics on everything made the footer
 # 4,541,351 bytes of a 580 MB file, which a cold first lookup paid in full.
 STATISTICS_COLUMNS = ["name_norm", "level", "country", "feature_id"]
+
+# Everything a client would otherwise have to discover the hard way. The two
+# sibling catalogs carry the same field for the same reason: a manifest is the
+# first thing fetched and the last thing read, so the caveats belong in it and
+# not only in a README nobody downloads.
+NOTES = (
+    "LIVE catalog, not provisional, but nothing has been published to the "
+    "bucket yet at the time this manifest was written. "
+    "`catalog_version` is pinned in three places and all three agree: this "
+    "manifest, the index parquet's `cnmw:catalog_version` footer key, and "
+    "every boundary and display file's footer -- 11 files in all, asserted by "
+    "tests/test_index_refs.py. It names the date geocode.earth built the "
+    "GeoParquet (2025-04-07), from that file's own inventory entry, not the "
+    "HTTP Last-Modified header, which reads 2025-10-30 on every object "
+    "because the bucket was re-copied then. The SQLite, SpatiaLite, "
+    "GeoJSON-bundle and PMTiles builds of the same upstream repository are "
+    "six months newer and come from a different WOF tree, so a count from "
+    "this index and a count from those is two vintages, not a discrepancy. "
+    "`level` is this catalog's mapping of Who's On First placetypes onto a "
+    "0-based ladder; WOF publishes no level number. `level_names` gives the "
+    "placetypes at each rung, and a rung is a tier: it can hold a unit and "
+    "its own subdivision, because WOF files `macroregion` above `region`, "
+    "`borough` below `locality` and `microhood` below `neighbourhood`. "
+    "`country` is ISO 3166-1 alpha-3 derived from WOF's two-letter code "
+    "through pycountry; WOF mints six codes of its own (XK, XN, XS, XX, XY, "
+    "XZ) that have no alpha-3 and appear as the two-letter code. `name_lang` "
+    "is an ISO 639-3 code from the 25 fixed language columns geocode.earth's "
+    "GeoParquet build carries -- Who's On First itself carries names in "
+    "hundreds of languages, and they are in the SQLite and GeoJSON "
+    "distributions, not here. The primary `name` is NOT always English "
+    "despite WOF documenting `wof:name` as \"English by default\": the "
+    "primary name of Kyoto Prefecture (feature_id 85672777) is Arabic, and "
+    "its Latin spellings are alternative-spelling rows. `name_norm` strips "
+    "every Unicode mark category (Mn, Mc and Me), as the index contract's "
+    "\\p{M} requires, so an Indic name folds to its consonant skeleton; a "
+    "client must apply exactly the same fold to the user's keystrokes or the "
+    "binary search misses for those scripts. `population` is INT64, so a "
+    "JavaScript reader gets a BigInt and must coerce before comparing it with "
+    "a number. Levels 4 and 5 have no `display` entry on purpose: their "
+    "median feature is a single point and 84% of their features are points, "
+    "so there is nothing to simplify and a second file would only add a "
+    "fetch; `is_point` on every index row says which. `geometry_ref` is "
+    "advisory: a client reads the referenced row group, decodes the row, and "
+    "MUST verify that row's `wof_id` equals the result's `feature_id` before "
+    "trusting its geometry, falling back to locating the row by `wof_id` on "
+    "any mismatch -- the boundary files are sorted by (country, wof_id) with "
+    "the sort declared, so that fallback is cheap. The display companion "
+    "holds the same rows at the same offsets, so one pointer resolves against "
+    "either file. The index carries no `area_km2`; `population` and WOF's own "
+    "`min_zoom` label-importance signal are the ranking columns, and "
+    "`area_km2` is in the boundary collections. Nothing in this catalog says "
+    "whether a place still exists: mz:is_current, edtf:cessation, "
+    "edtf:deprecated and wof:superseded_by are not carried by the GeoParquet "
+    "distribution. See the catalog's names/AGENTS.md and "
+    "changes-from-upstream.md for the measurements behind all of this."
+)
 LONG = WORK / "names.long.parquet"
 NORMED = WORK / "names.normed.parquet"
 SORTED = WORK / "names.sorted.parquet"
@@ -590,6 +646,7 @@ def manifest(index: dict, counts: dict) -> dict:
             "built": "2025-04-07T13:07:59Z",
         },
         "build": {"pycountry": pycountry_version()},
+        "notes": NOTES,
     }
 
 

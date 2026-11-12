@@ -696,9 +696,16 @@ def names_readme(con, facts: dict) -> str:
         lines.append(f"| {level} | {total:,} | {primary:,} | {alt:,} |")
     lines += [
         "",
-        f"`dropped_unnamed: {facts['dropped_unnamed']:,}` — places whose name "
-        "folds to nothing, so they cannot be found by name. They still exist "
-        "with geometry in their boundary collection.",
+        (
+            "`dropped_unnamed: 0` — the build drops a place whose name folds "
+            "to nothing, because it cannot be found by name, and **no place "
+            "in this distribution does**. Every one of the 5,405,294 has a "
+            "name."
+            if facts["dropped_unnamed"] == 0 else
+            f"`dropped_unnamed: {facts['dropped_unnamed']:,}` — places whose "
+            "name folds to nothing, so they cannot be found by name. They "
+            "still exist with geometry in their boundary collection."
+        ),
         "",
         f"**{facts['points'][0]:,} of {facts['points'][1]:,} rows have "
         "`is_point = true`**, meaning the place's geometry in its boundary "
