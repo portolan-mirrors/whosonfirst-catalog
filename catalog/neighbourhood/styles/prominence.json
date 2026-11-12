@@ -1,0 +1,52 @@
+{
+  "version": 8,
+  "name": "How early it appears on a map",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../neighbourhood.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "neighbourhood-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "neighbourhood",
+      "paint": {
+        "fill-color": [
+          "step",
+          [
+            "coalesce",
+            [
+              "get",
+              "min_zoom"
+            ],
+            0
+          ],
+          "#272763",
+          6,
+          "#4747a0",
+          9,
+          "#6e6ec6",
+          12,
+          "#9898dd",
+          14,
+          "#c6c6ef"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "neighbourhood-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "neighbourhood",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

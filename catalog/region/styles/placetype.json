@@ -1,0 +1,44 @@
+{
+  "version": 8,
+  "name": "Placetype",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../region.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "region-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "region",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "placetype"
+          ],
+          "region",
+          "#7d552e",
+          "macroregion",
+          "#c7a37b",
+          "#cfcfcf"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "region-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "region",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

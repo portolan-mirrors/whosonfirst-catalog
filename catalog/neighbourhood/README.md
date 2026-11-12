@@ -1,0 +1,236 @@
+# Who's On First Neighbourhoods, Macrohoods and Microhoods
+
+Level 5 of the Who's On First administrative ladder, as a cloud-native
+gazetteer collection: 397,416 places across 157 country codes.
+
+Placetypes here: `neighbourhood` (394,020), `microhood` (2,168), `macrohood`
+(1,228).
+
+Who's On First calls itself a gazetteer, and that is what this is: place-name
+and boundary lookup. There is no street or house number anywhere in WOF's admin
+distribution, so this is not address geocoding.
+
+> [!IMPORTANT]
+> **The license is a mix.** Who's On First scopes CC0 to "the format and
+> structure that allows Who's On First to operate" — the schema, not the
+> records — and the records inherit terms from over 300 sources. Attribution
+> is required: *Data from Who's On First.
+> [License](https://whosonfirst.org/docs/licenses/).* Measured on this
+> distribution's own
+> `geom_src` column, 70.88% of the geometry is GeoNames under CC BY and 14
+> records of 5,423,663 are share-alike. No ODbL source contributes geometry.
+> Join `geom_src` to
+> [whosonfirst-sources](https://github.com/whosonfirst/whosonfirst-sources)
+> for a specific feature's license.
+
+## Which file to read
+
+| you want | read | why |
+|---|---|---|
+| To draw many at once | `neighbourhood.pmtiles` | Tiled, capped at 400 KB per tile |
+| To clip, measure, export or analyse one place | `wof_neighbourhood.parquet` | The real geometry, 1.0 MB per range request |
+| To scan the whole planet, or all 21 placetypes at once | [geocode.earth's combined GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet) | One file, spatially clustered, 5.5 GB |
+| The full hierarchy, every language, or the temporal fields | [geocode.earth's SQLite distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2) | The GeoParquet build does not carry them |
+
+### Why this catalog has its own GeoParquet at all
+
+geocode.earth's combined file is cloud-native already: GeoParquet 1.1 with a
+`covering` bbox, served with HTTP range requests and
+`Access-Control-Allow-Origin: *`. For a scan or a spatial query it is the right
+file, and this collection links straight to it.
+
+It is the wrong file for fetching **one** place. Measured
+(`docs/upstream-measurements.md` in the
+[repository](https://github.com/portolan-mirrors/whosonfirst-catalog)): 83 row
+groups of 65,536 rows, no declared sort, 89% of the bytes in the `geometry`
+column, so one row group's geometry chunk is a median of 38 MiB and as much as
+285 MiB. Every Parquet reader is row-group-granular, so that is the cost of
+decoding a single row. `placetype` statistics span most of the alphabet in most
+row groups, so filtering to this level prunes nothing either.
+
+This file is the same 397,416 places sorted by `(country, wof_id)` with the
+sort declared, in 98 exactly-full row groups of 4096 — 1.0 MB each.
+
+## Files
+
+```
+neighbourhood/wof_neighbourhood.parquet  102.4 MB, 397,416 rows, 98 row groups of 4096
+neighbourhood/neighbourhood.pmtiles  84.5 MB, layer "neighbourhood"
+```
+
+## Schema
+
+Every column, with its provenance tag and full description, is in
+[collection.json](collection.json). The short version:
+
+| column | type | what it is |
+|---|---|---|
+| `wof_id` | string | The Who's On First identifier, and the key everything in this catalog joins on |
+| `parent_id` | string | The `wof_id` of the direct parent record, as a string |
+| `name` | string | The display name |
+| `placetype` | string | The WOF placetype, which is what WOF has instead of an administrative level |
+| `level` | int8 | This catalog's mapping of `placetype` onto the 0-based administrative ladder a name search needs: 0 country, dependency and disputed; 1 macroregion and region; 2 macrocounty and county; 3 localadmin; 4 locality and borough; 5 macrohood, neighbourhood and microhood |
+| `country` | string | ISO 3166-1 alpha-3, mapped from WOF's own two-letter code through the official ISO 3166-1 table packaged with pycountry, so this catalog and its two sibling gazetteer catalogs can be filtered with one code system |
+| `country_iso2` | string | WOF's own code, byte for byte |
+| `placetype_local` | string | "What locals consider the placetype to be (string value)" ([wof properties](https://whosonfirst.org/docs/properties/wof/), `wof:placetype_local`) |
+| `repo` | string | The `whosonfirst-data-admin-{cc}` GitHub repository this record comes from |
+| `lat` | double | "The latitude of a feature's geometric centroid" ([geom properties](https://whosonfirst.org/docs/properties/geom/), `geom:latitude`) |
+| `lon` | double | "The longitude of a feature's geometric centroid" ([geom properties](https://whosonfirst.org/docs/properties/geom/), `geom:longitude`) |
+| `min_zoom` | float | WOF's own answer to how early a place should appear on a map |
+| `max_zoom` | float | The upper end of the same pair |
+| `min_label` | float | The zoom at which a label for this place should first be drawn |
+| `max_label` | float | The upper end of the same undocumented pair |
+| `population` | int64 | "An integer value to represent the most current, known population of a place" ([wof properties](https://whosonfirst.org/docs/properties/wof/), `wof:population`) |
+| `is_funky` | int8 | WOF's own "needs a human" flag |
+| `modified` | date | When the WOF record last changed |
+| `country_wof_id` | string | The `wof_id` of the country this record sits in, flattened out of WOF's `wof:hierarchy` ([wof properties](https://whosonfirst.org/docs/properties/wof/): "A list of hashes, where each object is the list of ancestors") by geocode.earth's parquet build |
+| `region_wof_id` | string | The `wof_id` of the containing region, from the same flattened hierarchy |
+| `county_wof_id` | string | The `wof_id` of the containing county, from the same flattened hierarchy |
+| `iso_code` | string | An ISO 3166-2 subdivision code, such as `AL-01` |
+| `hasc_id` | string | A Hierarchical Administrative Subdivision Code, such as `AR.CT` |
+| `geonames_id` | string | The [GeoNames](https://www.geonames.org/) identifier for the same place, from WOF's `gn:id` concordance |
+| `wikidata_id` | string | The [Wikidata](https://www.wikidata.org/) Q-identifier, from WOF's `wd:id` concordance |
+| `concordance_keys` | string | **One** concordance key, not the set |
+| `concordance_ids` | string | The identifier belonging to `concordance_keys` |
+| `geom_src` | string | **The provenance and licensing key, and the most important column here.** WOF documents `src:geom` as "The data source of a record's geometry |
+| `area_km2` | double | Geodesic area in square kilometres, from DuckDB's `ST_Area_Spheroid` |
+| `perimeter_km` | double | Geodesic perimeter in kilometres, from `ST_Perimeter_Spheroid` |
+| `vertices` | int32 | Coordinates in the geometry, from `ST_NPoints` |
+| `geometry_repaired` | boolean | True where the upstream geometry failed `ST_IsValid` and this build rebuilt it with `ST_MakeValid` and `ST_CollectionExtract(..., 3)` |
+| `bbox` | struct | The feature's bounding box in EPSG:4326 degrees, as four doubles declared in the GeoParquet 1.1 `covering` metadata, so a reader can prune row groups spatially without decoding any geometry |
+| `geometry` | byte_array | WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags |
+
+## What this collection measures
+
+| | |
+|---|---|
+| Places | 397,416 |
+| Country codes | 157 |
+| Point geometries | 334,785 (84.2%) |
+| Coordinates per outline | median 1, 95th percentile 75, max 64,695 |
+| Features carrying a population | 124,867 (31.4%) |
+| Geometries repaired by this build | 26 |
+
+Where the outlines came from, by WOF's own `geom_src`:
+
+| `geom_src` | places |
+|---|---|
+| `geonames` | 178,071 |
+| `karmashapes` | 78,558 |
+| `mz` | 50,560 |
+| `qs_pg` | 34,434 |
+| `(none)` | 13,608 |
+| `whosonfirst` | 13,040 |
+| `cbsnl` | 12,396 |
+| `quattroshapes` | 6,689 |
+
+That column is the licensing key as well as the provenance one. Join it to
+[sources-spec-latest.json](https://github.com/whosonfirst/whosonfirst-sources)
+and a specific place's license is a fact rather than an average.
+
+## Known issues
+
+- **The GeoParquet vintage is 2025-04-07, six months behind the other
+  formats.** geocode.earth's SQLite, SpatiaLite, GeoJSON-bundle and PMTiles
+  builds of the same repository are from 2025-10-14 and come from a different
+  WOF tree. A count from this catalog and a count from the SQLite distribution
+  are two vintages, not a discrepancy.
+- **26 geometries were invalid upstream and rebuilt here** with `ST_MakeValid`.
+  The `geometry_repaired` column flags them. `ST_Intersection` against an
+  invalid polygon raises `TopologyException` and takes the whole query with it,
+  which is why this is a repair and not a note.
+- **`parent_id` carries WOF's negative sentinels.** `-2`, `-3` and `-4` are not
+  identifiers; see the column description. `-1` is mapped to null by this
+  build.
+- **The full `wof:hierarchy` and `wof:concordances` are not in the
+  GeoParquet.** The upstream build flattens them to three ancestor-id columns
+  and a single concordance key/id pair. Read the SQLite or GeoJSON distribution
+  for the complete structures.
+- **The temporal and deprecation fields are absent.** `mz:is_current`,
+  `edtf:cessation`, `edtf:deprecated` and `wof:superseded_by` are not carried
+  by the GeoParquet build, so this collection cannot tell you whether a place
+  is still a going concern. Pelias's own active-record filter needs all four
+  and reads them from the SQLite distribution.
+
+## Example queries
+
+Every one of these was run against the published files before this file was
+written.
+
+Read it in place over HTTPS, with no credentials:
+
+```sql
+INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
+
+SELECT placetype, count(*) AS places
+FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/neighbourhood/wof_neighbourhood.parquet'
+GROUP BY 1 ORDER BY 2 DESC;
+```
+```
+neighbourhood  394020
+microhood  2168
+macrohood  1228
+```
+
+The ten largest places here, by geodesic area:
+
+```sql
+SELECT name, country, placetype, round(area_km2) AS km2
+FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/neighbourhood/wof_neighbourhood.parquet'
+ORDER BY area_km2 DESC LIMIT 10;
+```
+```
+Baizhifang  CHN  neighbourhood  nan
+Chedaogou  CHN  neighbourhood  nan
+Fengsheng  CHN  neighbourhood  nan
+Balizhuang  CHN  neighbourhood  nan
+Beixiaguan  CHN  neighbourhood  nan
+Chaowai  CHN  neighbourhood  nan
+Chaoyang  CHN  neighbourhood  nan
+Chaoyangmen  CHN  neighbourhood  nan
+Chongwen  CHN  neighbourhood  nan
+Dazhalan  CHN  neighbourhood  nan
+```
+
+The country sort is what makes a country filter cheap: it prunes row groups
+rather than scanning.
+
+```sql
+SELECT name, placetype, round(area_km2, 1) AS km2
+FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/neighbourhood/wof_neighbourhood.parquet'
+WHERE country = 'NLD'
+ORDER BY area_km2 DESC LIMIT 5;
+```
+```
+Waddenzee  neighbourhood  2929.7
+IJsselmeer  neighbourhood  750.3
+Buitengebied Biddinghuizen  neighbourhood  210.8
+Buitengebied Dronten  neighbourhood  206.4
+Middengebied  neighbourhood  185.4
+```
+
+Which sources the outlines came from, which is also which licenses apply:
+
+```sql
+SELECT geom_src, count(*) AS places
+FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/neighbourhood/wof_neighbourhood.parquet'
+GROUP BY 1 ORDER BY 2 DESC LIMIT 5;
+```
+```
+geonames  178071
+karmashapes  78558
+mz  50560
+qs_pg  34434
+(none)  13608
+```
+
+## More
+
+- [Agent guide](AGENTS.md) — the join keys and the traps.
+- [geocode.earth's download
+  page](https://geocode.earth/data/whosonfirst/combined/) — the upstream
+  distribution, and the per-country and per-placetype alternatives.
+- [Who's On First placetypes](https://whosonfirst.org/docs/placetypes/) — the
+  project's own definitions.
+- [Catalog README](../README.md) and [catalog agent guide](../AGENTS.md).
+

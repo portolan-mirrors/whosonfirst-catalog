@@ -1,0 +1,52 @@
+{
+  "version": 8,
+  "name": "Coordinates per outline",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../region.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "region-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "region",
+      "paint": {
+        "fill-color": [
+          "step",
+          [
+            "coalesce",
+            [
+              "get",
+              "vertices"
+            ],
+            0
+          ],
+          "#f5ece2",
+          10,
+          "#e3cdb2",
+          100,
+          "#c7a37b",
+          1000,
+          "#a67a4c",
+          10000,
+          "#7d552e"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "region-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "region",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

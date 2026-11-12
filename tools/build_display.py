@@ -91,6 +91,7 @@ from wofcommon import (  # noqa: E402
     display_path,
     footer_metadata,
     geo_metadata,
+    geom_expr,
     human,
     stream_write,
 )
@@ -108,7 +109,7 @@ WITH scaled AS (
   SELECT
     (row_number() OVER () - 1)::BIGINT AS ord,
     wof_id, name, placetype, country,
-    ST_GeomFromWKB(geometry) AS geom,
+    {geom} AS geom,
     least(
       {tol},
       sqrt(power(bbox.xmax - bbox.xmin, 2) + power(bbox.ymax - bbox.ymin, 2))
@@ -128,12 +129,12 @@ FINALIZE_SQL = """
 SELECT
   wof_id, name, placetype, country,
   tol::FLOAT AS simplify_tolerance_deg,
-  ST_NPoints(geometry)::INTEGER AS vertices,
+  ST_NPoints({geom})::INTEGER AS vertices,
   {{
-    xmin: ST_XMin(geometry), ymin: ST_YMin(geometry),
-    xmax: ST_XMax(geometry), ymax: ST_YMax(geometry)
+    xmin: ST_XMin({geom}), ymin: ST_YMin({geom}),
+    xmax: ST_XMax({geom}), ymax: ST_YMax({geom})
   }} AS bbox,
-  ST_AsWKB(geometry) AS geometry
+  ST_AsWKB({geom}) AS geometry
 FROM read_parquet('{src}')
 ORDER BY ord
 """
@@ -143,15 +144,23 @@ ORDER BY ord
 # design intent. ST_Area is planar on degrees here, which is fine because it
 # is a ratio of two areas over the same small patch of the globe. Point rows
 # have no area and are excluded.
+#
+# Both sides go through ST_MakeValid first. The boundary files are already
+# repaired, but ST_Buffer can return a self-touching ring of its own, and
+# ST_Intersection against an invalid input does not return a wrong number --
+# it raises `TopologyException: side location conflict` and takes the whole
+# check with it. Repairing inside the check keeps it honest about area while
+# letting it finish; verify_validity below is what reports whether the
+# published display geometry needed it.
 CONTAINMENT_SQL = """
 WITH pair AS (
   SELECT b.wof_id, b.name, b.placetype, b.country,
-         ST_Area(ST_GeomFromWKB(b.geometry)) AS true_area,
-         ST_Area(ST_Intersection(ST_GeomFromWKB(b.geometry),
-                                 ST_GeomFromWKB(d.geometry))) AS kept_area
+         ST_Area(ST_MakeValid({bgeom})) AS true_area,
+         ST_Area(ST_Intersection(ST_MakeValid({bgeom}),
+                                 ST_MakeValid({dgeom}))) AS kept_area
   FROM read_parquet('{boundary}') b
   JOIN read_parquet('{display}') d USING (wof_id)
-  WHERE ST_Area(ST_GeomFromWKB(b.geometry)) > 0
+  WHERE ST_Area(ST_MakeValid({bgeom})) > 0
 )
 SELECT wof_id, name, placetype, country, kept_area / true_area AS contained
 FROM pair ORDER BY contained
@@ -175,12 +184,18 @@ def build(collection: str) -> dict:
         con,
         BUILD_SQL.format(
             tol=tol, share=SIMPLIFY_SHARE, segs=BUFFER_SEGMENTS,
-            src=src.as_posix(),
+            src=src.as_posix(), geom=geom_expr(con, src),
         ),
         raw,
     )
     ordered = WORK / f"{collection}.display.ordered.parquet"
-    copy_ordered(con, FINALIZE_SQL.format(src=raw.as_posix()), ordered)
+    copy_ordered(
+        con,
+        FINALIZE_SQL.format(
+            src=raw.as_posix(), geom=geom_expr(con, raw),
+        ),
+        ordered,
+    )
     rows, tol_lo, tol_hi, *bbox = con.execute(
         f"""SELECT count(*), min(simplify_tolerance_deg),
                    max(simplify_tolerance_deg),
@@ -203,7 +218,10 @@ def build(collection: str) -> dict:
     write_optimized(collection, ordered, bbox)
     ordered.unlink(missing_ok=True)
     verify_alignment(collection)
-    return verify_containment(collection)
+    invalid = verify_validity(collection)
+    result = verify_containment(collection)
+    result["invalid_display_geometries"] = invalid
+    return result
 
 
 def write_optimized(collection: str, ordered: Path, bbox: list[float]) -> None:
@@ -232,10 +250,9 @@ def write_optimized(collection: str, ordered: Path, bbox: list[float]) -> None:
     print(
         f"  {out.name}: {human(size)}, {md.num_rows:,} rows, "
         f"{md.num_row_groups:,} row groups, "
-        f"{size / md.num_rows / 1024:.1f} KiB per feature "
-        f"({human(full.serialized_size and out.stat().st_size)} total, "
+        f"{size / md.num_rows / 1024:.1f} KiB per feature, "
         f"{100 * size / boundary_path(collection).stat().st_size:.1f}% of the "
-        "full-resolution file)"
+        "full-resolution file"
     )
     if md.num_row_groups != full.num_row_groups:
         sys.exit(
@@ -266,12 +283,34 @@ def verify_alignment(collection: str) -> None:
     print(f"  aligned: all {len(a):,} rows at the same offset in both files")
 
 
+def verify_validity(collection: str) -> int:
+    """How many published display geometries fail ST_IsValid.
+
+    The boundary files are repaired, but simplifying and then buffering can
+    still produce a self-touching ring, and a consumer running a spatial join
+    against one gets an exception rather than a wrong answer. This number
+    belongs in the collection's known issues, not in a comment.
+    """
+    con = connect()
+    path = display_path(collection)
+    invalid = con.execute(
+        f"SELECT count(*) FILTER (NOT ST_IsValid({geom_expr(con, path)})) "
+        f"FROM read_parquet('{path.as_posix()}')"
+    ).fetchone()[0]
+    con.close()
+    print(f"  validity: {invalid:,} display geometr"
+          f"{'y' if invalid == 1 else 'ies'} fail ST_IsValid")
+    return invalid
+
+
 def verify_containment(collection: str) -> dict:
     con = connect()
     rows = con.execute(
         CONTAINMENT_SQL.format(
             boundary=boundary_path(collection).as_posix(),
             display=display_path(collection).as_posix(),
+            bgeom=geom_expr(con, boundary_path(collection), alias="b"),
+            dgeom=geom_expr(con, display_path(collection), alias="d"),
         )
     ).fetchall()
     con.close()

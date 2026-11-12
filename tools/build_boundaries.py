@@ -60,9 +60,44 @@ Columns change in three ways, all of them recorded in
    JSON-typed strings; they are all WOF integer ids, and they are published as
    decimal strings so that this catalog's files join to each other and to the
    search index with no cast. Empty strings become nulls.
-3. **Five columns are added**: `level`, `country` (ISO 3166-1 alpha-3 derived
-   from WOF's alpha-2), `area_km2` and `perimeter_km` (geodesic), `vertices`,
-   and the `bbox` covering struct.
+3. **Seven columns are added**: `level`, `country` (ISO 3166-1 alpha-3
+   derived from WOF's alpha-2), `area_km2` and `perimeter_km` (geodesic),
+   `vertices`, `geometry_repaired`, `geometry_flattened`, and the `bbox`
+   covering struct.
+
+Two geometries lose a Z coordinate
+----------------------------------
+Exactly two features in the whole distribution carry 3D geometry, and both
+are Swiss counties: Arbon (`wof_id` 102062959) and Neuchâtel
+(unincorporated) (`wof_id` 1394237543). Their Z values are elevations in
+metres, which is why the upstream file's GeoParquet metadata declares a
+six-element bbox with `zmin` 394.915 and `zmax` 1551.4825 for the whole
+planet.
+
+A Z coordinate means nothing for an administrative boundary, and mixing 2D
+and 3D in one column breaks readers: `gpq validate` rejects the file outright
+with "wkb: unsupported geometry", and it would make `county` the one
+collection a consumer has to special-case. So every geometry goes through
+`ST_Force2D`, which is a no-op for the other 5,405,292, and the two affected
+rows say so with `geometry_flattened = true`. The Z values are in
+geocode.earth's own file, which every collection links.
+
+One geometry change, and it is flagged per row
+----------------------------------------------
+480 of the 5,405,294 features this catalog carries fail `ST_IsValid` in the
+upstream file -- 29 regions, 74 counties, 44 local administrative units, 307
+localities and 26 neighbourhoods. An invalid polygon is not a cosmetic
+problem: `ST_Intersection` against one raises `TopologyException: side
+location conflict` and takes the whole query with it, which this build hit on
+its own containment check before the repair existed.
+
+So a row that fails `ST_IsValid` is rebuilt with `ST_MakeValid` and reduced
+back to polygons with `ST_CollectionExtract(..., 3)`, and the row records that
+with `geometry_repaired = true`. A row that passes is written through
+unchanged, so 5,404,814 of 5,405,294 geometries are byte-identical to
+upstream and the 480 that are not say so in a column. Anyone who wants the
+unrepaired shape can read it from geocode.earth's own file, which every
+collection links.
 """
 from __future__ import annotations
 
@@ -128,16 +163,27 @@ SELECT
   NULLIF(s.concord_ke, '')                         AS concordance_keys,
   NULLIF(s.concord_id, '')                         AS concordance_ids,
   NULLIF(s.geom_src, '')                           AS geom_src,
-  round(ST_Area_Spheroid(s.geometry) / 1e6, 6)     AS area_km2,
-  round(ST_Perimeter_Spheroid(s.geometry) / 1e3, 6) AS perimeter_km,
-  ST_NPoints(s.geometry)::INTEGER                  AS vertices,
+  round(ST_Area_Spheroid(g.geom) / 1e6, 6)         AS area_km2,
+  round(ST_Perimeter_Spheroid(g.geom) / 1e3, 6)    AS perimeter_km,
+  ST_NPoints(g.geom)::INTEGER                      AS vertices,
+  g.geometry_repaired                              AS geometry_repaired,
+  g.geometry_flattened                             AS geometry_flattened,
   {{
-    xmin: ST_XMin(s.geometry), ymin: ST_YMin(s.geometry),
-    xmax: ST_XMax(s.geometry), ymax: ST_YMax(s.geometry)
+    xmin: ST_XMin(g.geom), ymin: ST_YMin(g.geom),
+    xmax: ST_XMax(g.geom), ymax: ST_YMax(g.geom)
   }}                                               AS bbox,
-  ST_AsWKB(s.geometry)                             AS geometry
+  ST_AsWKB(g.geom)                                 AS geometry
 FROM read_parquet('{source}') s
 LEFT JOIN iso3166 iso ON iso.alpha_2 = upper(s.country)
+CROSS JOIN LATERAL (
+  SELECT NOT ST_IsValid(s.geometry) AS geometry_repaired,
+         ST_HasZ(s.geometry) AS geometry_flattened,
+         ST_Force2D(
+           CASE WHEN ST_IsValid(s.geometry) THEN s.geometry
+                ELSE ST_CollectionExtract(ST_MakeValid(s.geometry), 3)
+           END
+         ) AS geom
+) g
 WHERE s.placetype IN ({placetypes})
 ORDER BY country, wof_id
 """
@@ -159,7 +205,14 @@ def build(con, collection: str) -> dict:
         intermediate,
     )
     rows = pq.ParquetFile(intermediate).metadata.num_rows
+    repaired, flattened = con.execute(
+        f"SELECT count(*) FILTER (geometry_repaired), "
+        f"       count(*) FILTER (geometry_flattened) "
+        f"FROM read_parquet('{intermediate.as_posix()}')"
+    ).fetchone()
     print(f"  ordered {rows:,} rows -> {human(intermediate.stat().st_size)}")
+    print(f"  repaired {repaired:,} invalid geometr{'y' if repaired == 1 else 'ies'}")
+    print(f"  flattened {flattened:,} 3D geometr{'y' if flattened == 1 else 'ies'}")
 
     out = boundary_path(collection)
     bbox = whole_bbox(intermediate)
@@ -190,6 +243,8 @@ def build(con, collection: str) -> dict:
     return {
         "collection": collection,
         "level": level,
+        "repaired": repaired,
+        "flattened": flattened,
         "rows": md.num_rows,
         "row_groups": md.num_row_groups,
         "size": size,

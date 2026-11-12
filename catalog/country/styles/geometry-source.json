@@ -1,0 +1,48 @@
+{
+  "version": 8,
+  "name": "Who drew the outline",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../country.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "country-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "country",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "geom_src_group"
+          ],
+          "quattroshapes",
+          "#6b150c",
+          "whosonfirst",
+          "#cf5546",
+          "natural-earth",
+          "#f3c0ba",
+          "official",
+          "#a32f22",
+          "#cfcfcf"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "country-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "country",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

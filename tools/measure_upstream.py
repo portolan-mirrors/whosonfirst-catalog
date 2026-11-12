@@ -91,9 +91,16 @@ PROBE_TARGETS = (
 )
 
 
+# Every network call is bounded. A probe that hangs is indistinguishable from
+# a probe that is slow, and this script is meant to be rerun on every upstream
+# rebuild without anybody watching it.
+CURL_TIMEOUT = ["--connect-timeout", "15", "--max-time", "120"]
+
+
 def curl(args: list[str]) -> str:
     return subprocess.run(
-        ["curl", "-sS", *args], capture_output=True, text=True, check=False
+        ["curl", "-sS", *CURL_TIMEOUT, *args],
+        capture_output=True, text=True, check=False,
     ).stdout
 
 
@@ -221,7 +228,8 @@ def pmtiles_header(url: str) -> dict:
 
 def range_get(url: str, start: int, end: int) -> bytes:
     out = subprocess.run(
-        ["curl", "-sS", "-H", f"Range: bytes={start}-{end}", url],
+        ["curl", "-sS", *CURL_TIMEOUT, "-H", f"Range: bytes={start}-{end}",
+         url],
         capture_output=True, check=True,
     ).stdout
     want = end - start + 1
@@ -371,12 +379,35 @@ def main() -> int:
             lines.append(f"| `{key}` | {shown} |")
         lines.append("")
 
+    ranged = [
+        label for label, r in probes.items()
+        if "206" in r["cors"]["status"] or "206" in r["plain"]["status"]
+    ]
+    whole = [
+        label for label, r in probes.items()
+        if "206" not in r["cors"]["status"] and "206" not in r["plain"]["status"]
+    ]
+    if whole:
+        range_line = (
+            f"- **Range requests mostly work: {len(ranged)} of "
+            f"{len(probes)} files answered `206` on this run, and "
+            f"{', '.join(whole)} answered `200` with the whole body.** That "
+            "is the same intermittent behaviour described below; it does not "
+            "reproduce reliably, and it is exactly why a client must check "
+            "the status code."
+        )
+    else:
+        range_line = (
+            "- **Range requests work.** All "
+            f"{len(probes)} files answered a `Range` request with a `206` "
+            "and a correct `Content-Range` on this run. Suffix ranges "
+            "(`bytes=-500000`) work too. See the caveat below: this is not "
+            "guaranteed on every request."
+        )
     lines += [
         "### What that means for a browser client",
         "",
-        "- **Range requests work.** Every file answered a `Range` request with",
-        "  a `206` and a correct `Content-Range`, and suffix ranges",
-        "  (`bytes=-500000`) work too.",
+        range_line,
         "- **CORS allows the fetch.** `Access-Control-Allow-Origin: *` is",
         "  present on every response, with and without an `Origin`.",
         "- **`Access-Control-Expose-Headers` is absent.** `Content-Length` is",

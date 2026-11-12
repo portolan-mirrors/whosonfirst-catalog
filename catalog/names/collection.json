@@ -1,0 +1,477 @@
+{
+  "type": "Collection",
+  "stac_version": "1.1.0",
+  "stac_extensions": [
+    "https://schemas.portolan-sdi.org/portolan/v0.2.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "id": "names",
+  "title": "Who's On First Gazetteer Name Index",
+  "description": "**The gazetteer index: a name search sidecar, not a boundary dataset.** 5,405,294 places plus 4,073,485 alternative spellings of their names, 9,478,779 rows in all, sorted by a folded form of the name so that a static client with no server can turn a typed name into a Who's On First identifier, a bounding box and a point.\n\n**The sort is the whole design.** Row group statistics on `name_norm` are tight, non-overlapping alphabetical ranges, the footer declares the sort, and the Parquet page index is written, so a typed prefix resolves from one or two row groups rather than a download. The manifest at [index.json](index.json) is about 3 KB and carries the index's exact size, row group count and checksum, the `catalog_version` the boundary files are pinned to, and the attribution a client has to show. Fetch it first.\n\nEvery row carries what a result list needs without a second fetch: the display spelling, the level, the country, the parent's name, the population where WOF has one, WOF's own `min_zoom` prominence signal, a bbox to fly to, a point to pin, and an advisory `geometry_ref` that turns the geometry fetch into a single range read.\n\n**Multilingual, within a limit worth knowing.** The alternative spellings come from the 25 language columns geocode.earth's GeoParquet build carries. Who's On First itself carries names in hundreds of languages — one San Francisco record has 214 `name:*` properties — but those live in the SQLite and GeoJSON distributions, so this index cannot be richer than 25 languages however multilingual WOF is. Both distributions are assets of this collection.\n\nThis is place-name lookup, not address geocoding. The [agent guide](AGENTS.md) has the prefix-lookup recipe and the join back to geometry.",
+  "license": "other",
+  "keywords": [
+    "gazetteer",
+    "place names",
+    "administrative boundaries",
+    "Who's On First",
+    "WOF",
+    "multilingual",
+    "GeoParquet",
+    "PMTiles"
+  ],
+  "providers": [
+    {
+      "name": "Who's On First",
+      "description": "Produces the gazetteer. A community project, originally from Mapzen, that assembles place records from over 300 open data sources with a stable numeric identifier, a placetype hierarchy and names in hundreds of languages, and publishes the per-record geometry provenance that makes its licensing checkable.",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://whosonfirst.org/"
+    },
+    {
+      "name": "geocode.earth",
+      "description": "Builds and hosts the distributions. Who's On First lives as 260 GitHub repositories of GeoJSON; geocode.earth compiles them into combined GeoParquet, SQLite, SpatiaLite, GeoJSON-bundle and PMTiles files and serves them over HTTPS with range requests and permissive CORS. whosonfirst.org's own download page points here.",
+      "roles": [
+        "processor",
+        "host"
+      ],
+      "url": "https://geocode.earth/data/whosonfirst/combined/"
+    },
+    {
+      "name": "Portolan Mirrors",
+      "description": "Describes geocode.earth's distribution as a Portolan catalog and adds the three things a browser client cannot get from it: one GeoParquet per administrative level with small row groups, a display-simplified companion for the polygon-heavy levels, and a name index sorted for prefix search. Links to the upstream files rather than copying them wherever they already do the job. Adds no places and changes no attribute value.",
+      "roles": [
+        "processor",
+        "host"
+      ],
+      "url": "https://github.com/portolan-mirrors/whosonfirst-catalog"
+    }
+  ],
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          -180.0,
+          -90.0,
+          180.0,
+          83.653984
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2025-04-07T00:00:00Z",
+          "2025-04-07T00:00:00Z"
+        ]
+      ]
+    }
+  },
+  "updated": "2026-11-12T00:00:00Z",
+  "table:primary_geometry": "geometry",
+  "table:row_count": 9478779,
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json",
+      "title": "Who's On First: a Cloud-Native Gazetteer"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json",
+      "title": "Who's On First: a Cloud-Native Gazetteer"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "via",
+      "href": "https://geocode.earth/data/whosonfirst/combined/",
+      "type": "text/html",
+      "title": "geocode.earth combined Who's On First downloads (upstream source)"
+    },
+    {
+      "rel": "describedby",
+      "href": "https://whosonfirst.org/docs/placetypes/",
+      "type": "text/html",
+      "title": "Who's On First placetypes, the project's own definitions"
+    },
+    {
+      "rel": "cite-as",
+      "href": "https://whosonfirst.org/",
+      "type": "text/html",
+      "title": "Who's On First"
+    },
+    {
+      "rel": "license",
+      "href": "https://whosonfirst.org/docs/licenses/",
+      "type": "text/html",
+      "title": "Who's On First data licenses, source by source"
+    },
+    {
+      "rel": "license",
+      "href": "https://github.com/whosonfirst-data/whosonfirst-data/blob/master/LICENSE.md",
+      "type": "text/html",
+      "title": "Who's On First LICENSE.md"
+    },
+    {
+      "rel": "related",
+      "href": "https://source.coop/portolan-mirrors/geoboundaries-catalog",
+      "type": "text/html",
+      "title": "geoBoundaries CGAZ, a CC-BY-4.0 sibling gazetteer catalog"
+    },
+    {
+      "rel": "related",
+      "href": "https://source.coop/portolan-mirrors/cn-gazetteer-overture",
+      "type": "text/html",
+      "title": "Overture divisions, an ODbL sibling gazetteer catalog"
+    },
+    {
+      "rel": "related",
+      "href": "../country/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Countries, Dependencies and Disputed Areas"
+    },
+    {
+      "rel": "related",
+      "href": "../region/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Regions and Macroregions"
+    },
+    {
+      "rel": "related",
+      "href": "../county/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Counties and Macrocounties"
+    },
+    {
+      "rel": "related",
+      "href": "../localadmin/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Local Administrative Units"
+    },
+    {
+      "rel": "related",
+      "href": "../locality/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Localities and Boroughs"
+    },
+    {
+      "rel": "related",
+      "href": "../neighbourhood/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Neighbourhoods, Macrohoods and Microhoods"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./names.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Who's On First Gazetteer Name Index, vector tiles",
+      "pmtiles:layers": [
+        "names"
+      ]
+    }
+  ],
+  "assets": {
+    "data": {
+      "href": "./wof_names.parquet",
+      "file:size": 603916555,
+      "file:checksum": "1220bf0f4969f1f061688c777231fc8fb8bacfccd5546286c84bb04490faef7857fe",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Gazetteer Name Index, GeoParquet 1.1 (741 row groups of 12800, zstd, page index, sorted by name_norm)",
+      "roles": [
+        "data"
+      ],
+      "description": "One row per place plus one per distinct alternative spelling. The geometry column is one point per row, from the place's centroid: a marker, not a shape.",
+      "table:primary_geometry": "geometry"
+    },
+    "manifest": {
+      "href": "./index.json",
+      "file:size": 4805,
+      "file:checksum": "12209eed718b722f2aea41077caf3ac9a161d2bc43c2f755663cf1ee78ec1fe51514",
+      "type": "application/json",
+      "title": "Index manifest: fetch this before the index",
+      "roles": [
+        "metadata"
+      ],
+      "description": "The index's size, row group count, checksum and footer size, every boundary file's URL and row count, the `catalog_version` all of them are pinned to, and the attribution a client must display."
+    },
+    "pmtiles": {
+      "href": "./names.pmtiles",
+      "file:size": 182396524,
+      "file:checksum": "1220600fb731d470acacd5c1c39ed714b85179913a12b2f2576b8c25d6e57b9b7d86",
+      "type": "application/vnd.pmtiles",
+      "title": "Who's On First Gazetteer Name Index, vector tiles to zoom 8",
+      "roles": [
+        "visual",
+        "data"
+      ],
+      "pmtiles:layers": [
+        "names"
+      ]
+    },
+    "upstream-geoparquet": {
+      "href": "https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "geocode.earth combined admin GeoParquet, as published",
+      "roles": [
+        "data",
+        "source"
+      ],
+      "file:size": 5948636588,
+      "file:checksum": "1220f465c3a6507b407d060bec7cfa96e95e028d7cc13fbd06739f2cc5aa4ee6de11",
+      "description": "geocode.earth built this on 2025-04-07T13:07:59Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-pmtiles": {
+      "href": "https://data.geocode.earth/wof/dist/protomaps/whosonfirst-data-admin-latest.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "geocode.earth combined admin PMTiles, all 21 placetypes",
+      "roles": [
+        "visual",
+        "source"
+      ],
+      "file:size": 2130846508,
+      "file:checksum": "1220179562b7f4759147f1d26ca343b58234b696f151591cc19658267d0c230d32b4",
+      "description": "geocode.earth built this on 2025-10-14T15:28:42Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-sqlite": {
+      "href": "https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2",
+      "type": "application/x-bzip2",
+      "title": "geocode.earth combined admin SQLite, bzip2 (42.4 GB unpacked)",
+      "roles": [
+        "data",
+        "source"
+      ],
+      "file:size": 8596204210,
+      "file:checksum": "12201aa4bffcdec60a865f2f77688479313f83ed6b078d3c4c755ce12b941475b7b1",
+      "description": "geocode.earth built this on 2025-10-14T10:19:29Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-spatialite": {
+      "href": "https://data.geocode.earth/wof/dist/spatial/whosonfirst-data-admin-latest.spatial.db.bz2",
+      "type": "application/x-bzip2",
+      "title": "geocode.earth combined admin SpatiaLite, bzip2 (34.2 GB unpacked)",
+      "roles": [
+        "data",
+        "source"
+      ],
+      "file:size": 9827339205,
+      "file:checksum": "12206ab9101e4a0e8932ad2567386045585c05012b52c26a2624515067ac98579363",
+      "description": "geocode.earth built this on 2025-10-14T11:57:36Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-geojson": {
+      "href": "https://data.geocode.earth/wof/dist/bundles/whosonfirst-data-admin-latest.tar.bz2",
+      "type": "application/x-tar",
+      "title": "geocode.earth combined admin GeoJSON bundle, bzip2",
+      "roles": [
+        "data",
+        "source"
+      ],
+      "file:size": 4592915438,
+      "file:checksum": "1220af2810d168f914f8dd6dace4c8e2924d9ef9c446feced4d970854398df2f7d01",
+      "description": "geocode.earth built this on 2025-10-14T10:19:37Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-inventory": {
+      "href": "https://data.geocode.earth/wof/dist/parquet/inventory.json",
+      "type": "application/json",
+      "title": "geocode.earth GeoParquet inventory: vintage, members, digests",
+      "roles": [
+        "metadata",
+        "source"
+      ]
+    },
+    "upstream-members": {
+      "href": "https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet.json",
+      "type": "application/json",
+      "title": "The 260 member repositories and commits of this GeoParquet build",
+      "roles": [
+        "metadata",
+        "source"
+      ]
+    },
+    "style-ambiguity": {
+      "href": "./styles/ambiguity.json",
+      "file:size": 1043,
+      "file:checksum": "12207fa1fe36029cef948a6496f8d65d7c1b55ab51f4946d03c66f39e9b31a3deef5",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "How many places share this name",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-default": {
+      "href": "./styles/default.json",
+      "file:size": 1022,
+      "file:checksum": "12204ec6d1afb5b119049575ef8a91a6074ac4dc44cabbe6a53ddef87110c45306e8",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Administrative level",
+      "roles": [
+        "style",
+        "default"
+      ]
+    },
+    "style-geometry-kind": {
+      "href": "./styles/geometry-kind.json",
+      "file:size": 913,
+      "file:checksum": "122041ff59a908ee2d5517937212b30dd38da231bb037f40d36b9cc7a8abaebbd2e0",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Point or polygon in the boundary file",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-languages": {
+      "href": "./styles/languages.json",
+      "file:size": 1050,
+      "file:checksum": "122058d55ff97968ccbe6df5e929eeb57ec08a3a3321e97506b008f051a8ec76a7fe",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Languages agreeing on this spelling",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-level": {
+      "href": "./styles/level.json",
+      "file:size": 1022,
+      "file:checksum": "12204ec6d1afb5b119049575ef8a91a6074ac4dc44cabbe6a53ddef87110c45306e8",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Administrative level",
+      "roles": [
+        "style"
+      ]
+    },
+    "thumbnail": {
+      "href": "./names.thumb.png",
+      "file:size": 563886,
+      "file:checksum": "1220648ac7681a5bbe8ffa5052ed2f3a38b20e2ed8b7a62d65c72979fc4ffe001a25",
+      "type": "image/png",
+      "title": "Who's On First Gazetteer Name Index, rendered from the default style",
+      "roles": [
+        "thumbnail"
+      ]
+    }
+  },
+  "table:columns": [
+    {
+      "name": "name",
+      "type": "string",
+      "description": "Attested. The spelling to display. On a primary row it is WOF's `wof:name`; on an alternative row it is the value one of the 25 language columns holds. Display this; search `name_norm`."
+    },
+    {
+      "name": "name_norm",
+      "type": "string",
+      "description": "Derived. **The column the file is sorted by.** The folding is fixed by the index contract: Unicode NFD, combining marks (category Mn) dropped, everything outside Unicode letters, digits, space, hyphen and apostrophe replaced by a space, whitespace collapsed, trimmed, lowercased. So `zurich` finds `Zürich` and `koln` finds `Köln`. A script with no Latin decomposition, such as Han or Arabic, is lowercased and otherwise unchanged, so it is findable in its own script. The sort is byte-wise on the UTF-8 encoding and not a locale collation, which is what lets a JavaScript `a < b` on the same folded strings agree with the file's order."
+    },
+    {
+      "name": "level",
+      "type": "int8",
+      "description": "Derived. This catalog's 0-to-5 mapping of WOF's placetype, and the level a search filters on. It also says which boundary collection holds the row's geometry: the one at the same level."
+    },
+    {
+      "name": "placetype",
+      "type": "string",
+      "description": "Attested. WOF's own placetype, carried through so the placetypes sharing a level stay distinguishable: `country`, `dependency`, `disputed`, `macroregion`, `region`, `macrocounty`, `county`, `localadmin`, `locality`, `borough`, `macrohood`, `neighbourhood`, `microhood`."
+    },
+    {
+      "name": "country",
+      "type": "string",
+      "description": "Derived. ISO 3166-1 alpha-3, derived as in the boundary collections. A country row carries its own code. WOF's six synthetic two-letter codes have no alpha-3 and appear unchanged."
+    },
+    {
+      "name": "country_iso2",
+      "type": "string",
+      "description": "Attested. WOF's own two-letter code, byte for byte."
+    },
+    {
+      "name": "feature_id",
+      "type": "string",
+      "description": "Attested. The `wof_id` of the place, which is the column of the same name in every boundary collection. A logical key and never a row offset, which is what makes a version skew between this index and the boundary files recoverable rather than silently wrong. An alternative-spelling row repeats its place's `feature_id`, so a result list dedupes on it."
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "description": "Derived. Constant `whosonfirst-admin` on every row. The index contract allows one index to hold several sources and requires a result to be able to say where it came from; this index holds one."
+    },
+    {
+      "name": "name_lang",
+      "type": "string",
+      "description": "Attested. The ISO 639-3 language code this spelling came from, or null on a primary row where the language of `wof:name` is unstated. The 25 codes are the fixed set geocode.earth's parquet build carries: `ara`, `ben`, `deu`, `eng`, `ell`, `fas`, `fra`, `heb`, `hin`, `hun`, `ind`, `ita`, `jpn`, `kor`, `nld`, `pol`, `por`, `rus`, `spa`, `swe`, `tur`, `ukr`, `urd`, `vie`, `zho`. **Who's On First itself carries far more**: one San Francisco record has 214 `name:*` properties across 197 languages ([wof names](https://whosonfirst.org/docs/names/)). Those live in the SQLite and GeoJSON distributions, not in the GeoParquet, so this index cannot be richer than 25 languages however multilingual WOF is."
+    },
+    {
+      "name": "name_lang_count",
+      "type": "int16",
+      "description": "Derived. How many of the 25 language columns fold to this exact spelling for this place. 1 on a primary row. It is high where a name travels unchanged between languages, which is a usable signal that a spelling is widely recognized."
+    },
+    {
+      "name": "alt_of",
+      "type": "string",
+      "description": "Derived. Null on a primary row; on an alternative-spelling row it holds that row's own `feature_id`, which is the index contract's way of marking the row as another spelling of a place whose primary row is elsewhere in the file. Filter `alt_of IS NULL` for one row per place."
+    },
+    {
+      "name": "parent_name",
+      "type": "string",
+      "description": "Derived. The `name` of the place's parent, resolved through `parent_id` against the boundary collections, so an autocomplete can show 'Springfield, Illinois' without a second fetch. Null where the parent is outside the placetypes this catalog carries, or where `parent_id` is one of WOF's negative sentinels."
+    },
+    {
+      "name": "parent_id",
+      "type": "string",
+      "description": "Attested. The parent's `wof_id`. WOF's negative sentinels are carried through except `-1`, which becomes null; see the boundary collections' `parent_id`."
+    },
+    {
+      "name": "population",
+      "type": "int64",
+      "description": "Attested. The place's population where WOF has one, copied from its boundary row. A ranking signal, and null far more often than not."
+    },
+    {
+      "name": "min_zoom",
+      "type": "float",
+      "description": "Attested. WOF's `mz:min_zoom`, copied from the boundary row. The best prominence signal in this index: a lower number means WOF thinks the place should appear on a map earlier."
+    },
+    {
+      "name": "name_dupes",
+      "type": "int32",
+      "description": "Derived. How many distinct places in this index share this `name_norm`, anywhere in the world. An autocomplete needs it, because a bare name is often not an answer."
+    },
+    {
+      "name": "is_point",
+      "type": "boolean",
+      "description": "Derived. Whether this place's geometry in its boundary collection is a single point rather than a polygon. True for 84% of localities and neighbourhoods, because most of them come from GeoNames, which is a point gazetteer. A client that is about to draw an outline should check this first."
+    },
+    {
+      "name": "bbox",
+      "type": "struct",
+      "description": "Derived. The place's bounding box in EPSG:4326 degrees, as four float32 values rounded **outward**, so the box is never narrower than the true extent. float32 keeps about 1e-5 degrees, roughly a metre. For a point place it is the degenerate box at that point. Signed: `xmin > xmax` means the extent crosses the antimeridian."
+    },
+    {
+      "name": "geometry_ref",
+      "type": "struct",
+      "description": "Derived. **Advisory** `{file, row_group, row}` pointer into the boundary collection at this row's `level`, and into its display companion where there is one. `row` is the physical row offset captured with DuckDB's `file_row_number` off the published file; `row_group` is that offset floor-divided by the level's fixed row group size. A client reads the referenced row group, decodes the one row, and **must verify that row's `wof_id` equals this row's `feature_id`** before trusting the geometry. On any mismatch it falls back to locating the row by `wof_id`, which the boundary files' `(country, wof_id)` sort makes cheap. Never authoritative."
+    },
+    {
+      "name": "geometry",
+      "type": "byte_array",
+      "description": "Derived. WKB, one Point per row, from the place's `lon`/`lat` centroid, so this collection renders as a map of the gazetteer. It is a marker, not a shape: do not compute area, length or containment from it. The shape lives in the boundary collection at the row's `level`."
+    }
+  ],
+  "portolan:levels": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ]
+}

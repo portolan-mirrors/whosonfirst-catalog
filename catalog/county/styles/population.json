@@ -1,0 +1,52 @@
+{
+  "version": 8,
+  "name": "Population",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../county.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "county-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "county",
+      "paint": {
+        "fill-color": [
+          "step",
+          [
+            "coalesce",
+            [
+              "get",
+              "population"
+            ],
+            0
+          ],
+          "#eee0b3",
+          1000,
+          "#ddc67c",
+          10000,
+          "#c4a74c",
+          100000,
+          "#9c822c",
+          1000000,
+          "#665216"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "county-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "county",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

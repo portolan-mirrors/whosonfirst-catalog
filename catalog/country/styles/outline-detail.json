@@ -1,0 +1,52 @@
+{
+  "version": 8,
+  "name": "Coordinates per outline",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../country.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "country-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "country",
+      "paint": {
+        "fill-color": [
+          "step",
+          [
+            "coalesce",
+            [
+              "get",
+              "vertices"
+            ],
+            0
+          ],
+          "#fbe9e7",
+          10,
+          "#f3c0ba",
+          100,
+          "#e5897f",
+          1000,
+          "#cf5546",
+          10000,
+          "#a32f22"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "country-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "country",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

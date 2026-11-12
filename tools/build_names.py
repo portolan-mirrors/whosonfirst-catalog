@@ -113,6 +113,13 @@ from wofcommon import (  # noqa: E402
 )
 
 SOURCE_NAME = "whosonfirst-admin"
+
+# The only columns a client prunes row groups on. The footer carries one
+# thrift record per column per row group, and a range client reads the whole
+# footer before it reads anything, so statistics on the other 17 columns are
+# cost with no benefit. Measured: statistics on everything made the footer
+# 4,541,351 bytes of a 580 MB file, which a cold first lookup paid in full.
+STATISTICS_COLUMNS = ["name_norm", "level", "country", "feature_id"]
 LONG = WORK / "names.long.parquet"
 NORMED = WORK / "names.normed.parquet"
 SORTED = WORK / "names.sorted.parquet"
@@ -443,6 +450,7 @@ def write_index() -> dict:
         row_group_rows=NAMES_ROW_GROUP_ROWS,
         footer_meta=meta,
         transform=narrow_bbox,
+        statistics_columns=STATISTICS_COLUMNS,
         sorting_columns=[
             pq.SortingColumn(
                 pq.ParquetFile(SORTED).schema_arrow.get_field_index("name_norm"),

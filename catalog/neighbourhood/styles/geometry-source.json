@@ -1,0 +1,56 @@
+{
+  "version": 8,
+  "name": "Who drew the outline",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../neighbourhood.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "neighbourhood-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "neighbourhood",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "geom_src_group"
+          ],
+          "geonames",
+          "#272763",
+          "karmashapes",
+          "#6e6ec6",
+          "whosonfirst",
+          "#c6c6ef",
+          "quattroshapes",
+          "#4747a0",
+          "official",
+          "#9898dd",
+          "unknown",
+          "#eaeafa",
+          "mesoshapes",
+          "#272763",
+          "natural-earth",
+          "#6e6ec6",
+          "#cfcfcf"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "neighbourhood-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "neighbourhood",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

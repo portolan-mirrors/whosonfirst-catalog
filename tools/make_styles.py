@@ -42,6 +42,7 @@ from wofcommon import (  # noqa: E402
     NAMES_PATH,
     boundary_path,
     connect,
+    geom_src_group_sql,
 )
 
 CATALOG = Path(__file__).resolve().parents[1] / "catalog"
@@ -128,7 +129,7 @@ def style(collection: str, name: str, title: str, layers: list[dict]) -> None:
     print(f"  {out.relative_to(CATALOG)}  {title}")
 
 
-def match_expr(field: str, pairs: list[tuple[str, str]], fallback=GREY) -> list:
+def match_expr(field: str, pairs, fallback=GREY) -> list:
     expr: list = ["match", ["get", field]]
     for value, color in pairs:
         expr += [value, color]
@@ -165,6 +166,52 @@ def band_counts(con, src: Path, field: str, edges: list[float]) -> list[int]:
     return list(con.execute(sql).fetchone())
 
 
+def prune_bands(
+    edges: list[float], counts: list[int]
+) -> tuple[list[float], list[int]]:
+    """Drop every band nothing falls into.
+
+    A legend class that no feature lands in is the most common visible defect
+    in a new catalog: the browser prints the class, the map never paints it,
+    and a reader concludes the data is missing. The bands are chosen as round
+    numbers a human can read, so whether each one is populated depends on the
+    level -- 60,815 local administrative units have a `min_zoom` of 12 or 13
+    and **none** has 14 or more. So the edge that opens an empty band is
+    removed and its colour goes with it, which merges the empty band into the
+    one below. tests/test_styles.py re-measures and fails if one survives.
+    """
+    kept_edges: list[float] = []
+    kept_counts: list[int] = [counts[0]]
+    for edge, count in zip(edges, counts[1:]):
+        if count == 0:
+            continue
+        kept_edges.append(edge)
+        kept_counts.append(count)
+    if kept_counts[0] == 0 and len(kept_counts) > 1:
+        # The bottom band is empty too: the first edge becomes the floor.
+        kept_edges = kept_edges[1:]
+        kept_counts = kept_counts[1:]
+    return kept_edges, kept_counts
+
+
+def banded(
+    con, src: Path, field: str, edges: list[float], colors: list[str]
+) -> tuple[list, list[int], list[float]]:
+    """A `step` expression over only the bands that have features in them."""
+    counts = band_counts(con, src, field, edges)
+    kept, kept_counts = prune_bands(edges, counts)
+    if not kept:
+        # Nothing to band on at all: one flat class, which still legends.
+        return ["step", ["coalesce", ["get", field], 0], colors[0]], \
+               kept_counts, kept
+    expr = step_expr(
+        field, colors[0],
+        [(edge, colors[min(i + 1, len(colors) - 1)])
+         for i, edge in enumerate(kept)],
+    )
+    return expr, kept_counts, kept
+
+
 def build_boundary_styles(con, collection: str) -> None:
     src = boundary_path(collection)
     if not src.exists():
@@ -192,87 +239,85 @@ def build_boundary_styles(con, collection: str) -> None:
     #    useful thing a reader can see about it: `geom_src` is the per-record
     #    licensing and quality key, and it resolves to a license through
     #    whosonfirst-sources.
-    src_counts = [
-        (value, n) for value, n in counts(con, src, "geom_src")
-        if value != "(null)"
-    ][:5]
-    pairs = [
-        (value, ramp[5 - min(i, 4)]) for i, (value, n) in enumerate(src_counts)
-    ]
-    for value, n in src_counts:
-        print(f"  geom_src {value}: {n:,}")
+    #
+    #    It is painted as the grouping defined in wofcommon.GEOM_SRC_GROUPS
+    #    rather than raw, because raw it is long-tailed -- 66 distinct values
+    #    at one level -- and because the grouping covers every row, so nothing
+    #    lands in a fallback colour with no legend entry to explain it.
+    group_counts = con.execute(
+        f"SELECT {geom_src_group_sql()} AS g, count(*) AS n "
+        f"FROM read_parquet('{src.as_posix()}') GROUP BY 1 ORDER BY 2 DESC"
+    ).fetchall()
+    shades = [ramp[5], ramp[3], ramp[1], ramp[4], ramp[2], ramp[0]]
+    pairs = []
+    for i, (value, n) in enumerate(group_counts):
+        pairs.append((value, shades[i % len(shades)]))
+        print(f"  geom_src_group {value}: {n:,}")
     provenance_layers = [
-        fill(collection, match_expr("geom_src", pairs)), outline(collection)
+        fill(collection, match_expr("geom_src_group", pairs)),
+        outline(collection),
     ]
 
     # 3. Population. WOF carries it where a source had one, which is far from
     #    everywhere, so the "no figure" class is real and is coloured grey.
-    pop_edges = [1_000, 10_000, 100_000, 1_000_000]
-    pop_bands = band_counts(con, src, "population", pop_edges)
     with_pop = con.execute(
         f"SELECT count(population), count(*) FROM "
         f"read_parquet('{src.as_posix()}')"
     ).fetchone()
+    pop_expr, pop_bands, pop_kept = banded(
+        con, src, "population", [1_000, 10_000, 100_000, 1_000_000], ramp[1:]
+    )
     print(
         f"  population: {with_pop[0]:,} of {with_pop[1]:,} features carry one, "
-        f"bands {pop_bands}"
+        f"edges {pop_kept} bands {pop_bands}"
     )
-    population_layers = [
-        fill(
-            collection,
-            step_expr(
-                "population", ramp[1],
-                [(edge, ramp[i + 2]) for i, edge in enumerate(pop_edges)],
-            ),
-        ),
-        outline(collection),
-    ]
+    population_layers = [fill(collection, pop_expr), outline(collection)]
 
     # 4. Prominence. `min_zoom` is WOF's own answer to "how early should this
     #    place appear on a map", which is a better importance signal than area
     #    for a gazetteer and is not available in either sibling catalog.
-    zoom_edges = [6, 9, 12, 14]
-    zoom_bands = band_counts(con, src, "min_zoom", zoom_edges)
-    print(f"  min_zoom bands {zoom_edges}: {zoom_bands}")
-    prominence_layers = [
-        fill(
-            collection,
-            step_expr(
-                "min_zoom", ramp[5],
-                [(edge, ramp[4 - i]) for i, edge in enumerate(zoom_edges)],
-            ),
-        ),
-        outline(collection),
-    ]
+    zoom_expr, zoom_bands, zoom_kept = banded(
+        con, src, "min_zoom", [6, 9, 12, 14], list(reversed(ramp[1:])),
+    )
+    print(f"  min_zoom edges {zoom_kept} bands {zoom_bands}")
+    prominence_layers = [fill(collection, zoom_expr), outline(collection)]
 
     # 5. Outline detail. How many coordinates a feature's outline has, which
     #    is the measurement behind this catalog's display files and shows a
     #    reader directly where the upstream geometry is detailed and where it
     #    was carried up from a coarser source.
-    vertex_edges = [10, 100, 1_000, 10_000]
-    vertex_bands = band_counts(con, src, "vertices", vertex_edges)
-    print(f"  vertices bands {vertex_edges}: {vertex_bands}")
-    detail_layers = [
-        fill(
-            collection,
-            step_expr(
-                "vertices", ramp[0],
-                [(edge, ramp[i + 1]) for i, edge in enumerate(vertex_edges)],
-            ),
-        ),
-        outline(collection),
-    ]
+    vertex_expr, vertex_bands, vertex_kept = banded(
+        con, src, "vertices", [10, 100, 1_000, 10_000], ramp
+    )
+    print(f"  vertices edges {vertex_kept} bands {vertex_bands}")
+    detail_layers = [fill(collection, vertex_expr), outline(collection)]
 
     chosen = [
         ("placetype", "Placetype", placetype_layers),
-        ("geometry-source", "Where the outline came from", provenance_layers),
+        ("geometry-source", "Who drew the outline", provenance_layers),
         ("population", "Population", population_layers),
         ("prominence", "How early it appears on a map", prominence_layers),
         ("outline-detail", "Coordinates per outline", detail_layers),
     ]
-    # One placetype means a one-class legend, which says nothing; that
-    # collection leads with provenance instead.
-    default = "placetype" if len(present) > 1 else "geometry-source"
+    # Which style leads. A legend whose classes exist but are invisible on the
+    # map is as useless as an empty one, so `placetype` leads only where the
+    # minority placetype is actually visible -- at least 1% of the collection.
+    # Level 4 has 460 boroughs among 4,795,832 localities (0.01%) and level 5
+    # has 3,396 macro- and microhoods among 397,416 (0.85%), so painting
+    # placetype there would be a two-class legend over a map of one colour.
+    # Those lead with prominence, which varies everywhere. A collection with
+    # one placetype leads with provenance.
+    minority = (
+        min(n for _, n in present) / sum(n for _, n in present)
+        if len(present) > 1 else 0.0
+    )
+    if len(present) == 1:
+        default = "geometry-source"
+    elif minority >= 0.01:
+        default = "placetype"
+    else:
+        default = "prominence"
+    print(f"  default style: {default} (minority placetype {minority:.2%})")
     for name, title, layers in chosen:
         style(collection, name, title, layers)
         if name == default:
@@ -285,59 +330,44 @@ def build_names_styles(con) -> None:
     ramp = PALETTE["names"]
     print("[names]")
 
-    dupe_edges = [2, 6, 26, 101]
-    dupe_bands = band_counts(con, NAMES_PATH, "name_dupes", dupe_edges)
-    print(f"  name_dupes bands {dupe_edges}: {dupe_bands}")
+    dupe_expr, dupe_bands, dupe_kept = banded(
+        con, NAMES_PATH, "name_dupes", [2, 6, 26, 101], ramp[1:]
+    )
+    print(f"  name_dupes edges {dupe_kept} bands {dupe_bands}")
     style(
         "names", "ambiguity", "How many places share this name",
-        [circle(
-            "names",
-            step_expr(
-                "name_dupes", ramp[1],
-                [(edge, ramp[i + 2]) for i, edge in enumerate(dupe_edges)],
-            ),
-        )],
+        [circle("names", dupe_expr)],
     )
 
-    level_counts = counts(con, NAMES_PATH, "level")
-    print(f"  levels: {level_counts}")
-    style(
-        "names", "level", "Administrative level",
-        [circle(
-            "names",
-            match_expr(
-                "level",
-                [(str(i), ramp[min(i, 5)]) for i in range(6)],
-            ),
-        )],
+    # A `match` label has to be the same type as the column, or every branch
+    # misses and the whole layer renders in the fallback colour while the
+    # legend still lists every class. `level` is an int8 and `is_point` is a
+    # boolean, so the labels here are ints and booleans, not strings.
+    levels = sorted(
+        int(v) for v, _ in counts(con, NAMES_PATH, "level") if v != "(null)"
     )
-    style("names", "default", "Administrative level",
-          [circle(
-              "names",
-              match_expr(
-                  "level", [(str(i), ramp[min(i, 5)]) for i in range(6)]
-              ),
-          )])
+    print(f"  levels: {levels}")
+    level_layers = [circle(
+        "names",
+        match_expr("level", [(i, ramp[min(i, 5)]) for i in levels]),
+    )]
+    style("names", "level", "Administrative level", level_layers)
+    style("names", "default", "Administrative level", level_layers)
 
-    lang_edges = [2, 4, 8, 16]
-    lang_bands = band_counts(con, NAMES_PATH, "name_lang_count", lang_edges)
-    print(f"  name_lang_count bands {lang_edges}: {lang_bands}")
+    lang_expr, lang_bands, lang_kept = banded(
+        con, NAMES_PATH, "name_lang_count", [2, 4, 8, 16], ramp[1:]
+    )
+    print(f"  name_lang_count edges {lang_kept} bands {lang_bands}")
     style(
         "names", "languages", "Languages agreeing on this spelling",
-        [circle(
-            "names",
-            step_expr(
-                "name_lang_count", ramp[1],
-                [(edge, ramp[i + 2]) for i, edge in enumerate(lang_edges)],
-            ),
-        )],
+        [circle("names", lang_expr)],
     )
 
     style(
         "names", "geometry-kind", "Point or polygon in the boundary file",
         [circle(
             "names",
-            match_expr("is_point", [("true", ramp[2]), ("false", ramp[5])]),
+            match_expr("is_point", [(True, ramp[2]), (False, ramp[5])]),
         )],
     )
 

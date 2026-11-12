@@ -1,0 +1,200 @@
+{
+  "spec": "cnmw-index/1.0",
+  "source": "whosonfirst-admin",
+  "index_version": "2026-11-12T00:00:00Z",
+  "catalog_version": "whosonfirst-admin-parquet-2025-04-07",
+  "rows": 9478779,
+  "primary_rows": 5405294,
+  "alt_rows": 4073485,
+  "levels": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "level_names": {
+    "0": [
+      "country",
+      "dependency",
+      "disputed"
+    ],
+    "1": [
+      "macroregion",
+      "region"
+    ],
+    "2": [
+      "macrocounty",
+      "county"
+    ],
+    "3": [
+      "localadmin"
+    ],
+    "4": [
+      "locality",
+      "borough"
+    ],
+    "5": [
+      "macrohood",
+      "neighbourhood",
+      "microhood"
+    ]
+  },
+  "stats_truncated": false,
+  "dropped_unnamed": 0,
+  "index": {
+    "url": "./wof_names.parquet",
+    "size": 603916555,
+    "checksum": "1220bf0f4969f1f061688c777231fc8fb8bacfccd5546286c84bb04490faef7857fe",
+    "row_groups": 741,
+    "row_group_rows": 12800,
+    "footer_bytes": 1713128,
+    "page_index_bytes": 431565,
+    "sorted_by": [
+      "name_norm",
+      "level",
+      "country",
+      "feature_id"
+    ],
+    "feature_id_column": "feature_id"
+  },
+  "boundaries": [
+    {
+      "level": 0,
+      "collection": "country",
+      "feature_id_column": "wof_id",
+      "country_column": "country",
+      "geometry_column": "geometry",
+      "row_group_rows": 4,
+      "full": {
+        "url": "../country/wof_country.parquet",
+        "size": 64529828,
+        "row_count": 353,
+        "row_groups": 89
+      },
+      "display": {
+        "url": "../country/wof_country_display.parquet",
+        "size": 5373892,
+        "row_count": 353,
+        "row_groups": 89
+      }
+    },
+    {
+      "level": 1,
+      "collection": "region",
+      "feature_id_column": "wof_id",
+      "country_column": "country",
+      "geometry_column": "geometry",
+      "row_group_rows": 16,
+      "full": {
+        "url": "../region/wof_region.parquet",
+        "size": 222368644,
+        "row_count": 4362,
+        "row_groups": 273
+      },
+      "display": {
+        "url": "../region/wof_region_display.parquet",
+        "size": 22883661,
+        "row_count": 4362,
+        "row_groups": 273
+      }
+    },
+    {
+      "level": 2,
+      "collection": "county",
+      "feature_id_column": "wof_id",
+      "country_column": "country",
+      "geometry_column": "geometry",
+      "row_group_rows": 64,
+      "full": {
+        "url": "../county/wof_county.parquet",
+        "size": 529490726,
+        "row_count": 42115,
+        "row_groups": 659
+      },
+      "display": {
+        "url": "../county/wof_county_display.parquet",
+        "size": 112397378,
+        "row_count": 42115,
+        "row_groups": 659
+      }
+    },
+    {
+      "level": 3,
+      "collection": "localadmin",
+      "feature_id_column": "wof_id",
+      "country_column": "country",
+      "geometry_column": "geometry",
+      "row_group_rows": 256,
+      "full": {
+        "url": "../localadmin/wof_localadmin.parquet",
+        "size": 881591225,
+        "row_count": 164756,
+        "row_groups": 644
+      },
+      "display": {
+        "url": "../localadmin/wof_localadmin_display.parquet",
+        "size": 230549995,
+        "row_count": 164756,
+        "row_groups": 644
+      }
+    },
+    {
+      "level": 4,
+      "collection": "locality",
+      "feature_id_column": "wof_id",
+      "country_column": "country",
+      "geometry_column": "geometry",
+      "row_group_rows": 2048,
+      "full": {
+        "url": "../locality/wof_locality.parquet",
+        "size": 1539384352,
+        "row_count": 4796292,
+        "row_groups": 2342
+      }
+    },
+    {
+      "level": 5,
+      "collection": "neighbourhood",
+      "feature_id_column": "wof_id",
+      "country_column": "country",
+      "geometry_column": "geometry",
+      "row_group_rows": 4096,
+      "full": {
+        "url": "../neighbourhood/wof_neighbourhood.parquet",
+        "size": 107384451,
+        "row_count": 397416,
+        "row_groups": 98
+      }
+    }
+  ],
+  "attribution": [
+    {
+      "text": "Data from Who's On First. License: https://whosonfirst.org/docs/licenses/",
+      "license": "other",
+      "url": "https://whosonfirst.org/docs/licenses/",
+      "share_alike": false
+    },
+    {
+      "text": "Includes data from GeoNames, available under CC BY 4.0.",
+      "license": "CC-BY-4.0",
+      "url": "https://www.geonames.org/about.html",
+      "share_alike": false
+    },
+    {
+      "text": "Distribution built and hosted by geocode.earth.",
+      "license": "other",
+      "url": "https://geocode.earth/data/whosonfirst/combined/",
+      "share_alike": false
+    }
+  ],
+  "share_alike": false,
+  "upstream": {
+    "url": "https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet",
+    "built": "2025-04-07T13:07:59Z"
+  },
+  "build": {
+    "pycountry": "26.2.16"
+  }
+}

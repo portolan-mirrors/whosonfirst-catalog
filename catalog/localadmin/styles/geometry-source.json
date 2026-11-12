@@ -1,0 +1,50 @@
+{
+  "version": 8,
+  "name": "Who drew the outline",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../localadmin.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "localadmin-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "localadmin",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "geom_src_group"
+          ],
+          "official",
+          "#2a2e6b",
+          "quattroshapes",
+          "#6e79d0",
+          "unknown",
+          "#c8cef2",
+          "mesoshapes",
+          "#4a52a6",
+          "whosonfirst",
+          "#9aa4e4",
+          "#cfcfcf"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "localadmin-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "localadmin",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

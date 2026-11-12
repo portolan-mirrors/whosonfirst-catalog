@@ -1,0 +1,44 @@
+{
+  "version": 8,
+  "name": "Placetype",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../locality.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "locality-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "locality",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "placetype"
+          ],
+          "locality",
+          "#a93281",
+          "borough",
+          "#ea8ecd",
+          "#cfcfcf"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "locality-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "locality",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

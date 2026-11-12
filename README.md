@@ -1,24 +1,40 @@
-# Portolan Catalog Template
+# whosonfirst-catalog
 
-A starting point for a [Portolan](https://www.portolan-sdi.org/) catalog whose
-metadata lives in git. Click **Use this template**, work through
-[SETUP.md](SETUP.md), and you have a repository whose CI validates every change
-before it publishes.
+A git-backed [Portolan](https://www.portolan-sdi.org/) catalog describing
+[Who's On First](https://whosonfirst.org/), the open gazetteer, as
+[geocode.earth](https://geocode.earth/data/whosonfirst/combined/) distributes
+it — plus the few files a browser needs to search it.
 
-**`catalog/` is the published catalog.** Everything in it is published.
-Everything outside it never is. That boundary is the whole publish contract,
-and `tools/publish.py` has no flag or config key that widens it.
+The catalog metadata lives here. The data lives in object storage at
+[source.coop/portolan-mirrors/whosonfirst-catalog](https://source.coop/portolan-mirrors/whosonfirst-catalog),
+beside the published metadata.
 
-## Three kinds of file
+## This catalog is metadata-first
 
-| Kind | Where | Example |
-|---|---|---|
-| Tracked and published | inside `catalog/` | STAC JSON, `README.md`, `AGENTS.md`, thumbnails, logos |
-| Tracked, never published | outside `catalog/` | `tools/`, `tests/`, `docs/`, this README, `catalog.publish.yaml` |
-| Neither | gitignored | GeoParquet, COGs, PMTiles, credentials |
+Most Portolan mirrors copy the upstream bytes. This one does not, and that is
+the point.
 
-The data lives in object storage next to the published metadata. The
-repository references it by URL and never stores it.
+geocode.earth's combined Who's On First GeoParquet is already cloud-native:
+GeoParquet 1.1 with a `covering` bbox, spatially clustered, served over HTTPS
+with range requests and `Access-Control-Allow-Origin: *`. A planet-wide
+aggregate over it takes seconds. Copying 5.5 GB would produce a staler
+duplicate of a file that already works.
+
+So every collection links straight to geocode.earth's files, with the size and
+sha256 their own inventory records, and this repository builds only what a
+measurement says those files cannot do:
+
+| built here | because |
+|---|---|
+| One GeoParquet per administrative level, small row groups, sorted by `(country, wof_id)` | one place's geometry from the upstream file costs a median of 38 MiB and up to 285 MiB |
+| A display-simplified companion for levels 0–3 only | a median country is 4,866 coordinates; a median locality is **one** |
+| PMTiles capped at 400 KB per tile | the upstream archive's whole-world tile is 15,671,392 bytes |
+| A 9.5-million-row name index | nothing upstream answers "what places are called something like *this*" |
+
+Every one of those numbers is measured, and every measurement is in
+[`docs/upstream-measurements.md`](docs/upstream-measurements.md) and
+[`docs/index-measurements.md`](docs/index-measurements.md). A built file with
+no row in those documents does not belong in this catalog.
 
 ## Layout
 
@@ -26,37 +42,42 @@ repository references it by URL and never stores it.
 |---|---|
 | `catalog/` | The published tree, synced 1:1 to object storage |
 | `catalog.publish.yaml` | Where it publishes, and under what public URL |
-| `tools/publish.py` | The sync. Dry run by default |
-| `tools/upload_data.py` | The data upload. Dry run by default |
+| `tools/` | The build. Ten scripts, each runnable on its own |
 | `tests/` | The gates CI runs on every pull request |
+| `docs/upstream-measurements.md` | What geocode.earth's own files cost a client |
+| `docs/index-measurements.md` | What the name index costs a client |
+| `docs/licensing.md` | Why the `license` field says `other` |
 | `docs/conformance.md` | Any validator finding this catalog accepts, and why |
-| `SETUP.md` | The checklist. Delete it when you are done |
 
-## Publish
+`catalog/` is the publish boundary. Everything in it is published; nothing
+outside it ever is. `tools/publish.py` has no flag that widens that.
 
-```bash
-python3 tools/publish.py            # dry run: what would change
-python3 tools/publish.py --confirm  # upload; needs AWS credentials
-```
+## Build
 
-It never deletes. Removing a file from `catalog/` does not unpublish it, so
-delete the object yourself if that is what you meant.
-
-## Upload the data
-
-The data is too large for git, so it lives outside `catalog/`.
-`tools/upload_data.py` carries it to the same bucket prefix. Set `data_dir` in
-`catalog.publish.yaml` to the directory that holds it.
+The pipeline needs DuckDB with `spatial`, PyArrow, pycountry, GDAL's
+`ogr2ogr`, `tippecanoe` and the `pmtiles` CLI. It stages about 10 GB in
+`../whosonfirst-staging`, outside the repository.
 
 ```bash
-python3 tools/upload_data.py            # dry run: what would change
-python3 tools/upload_data.py --confirm  # upload; needs AWS credentials
+python3 tools/fetch_sources.py       # 5.5 GB from geocode.earth, verified
+python3 tools/measure_upstream.py    # -> docs/upstream-measurements.md
+python3 tools/build_boundaries.py    # -> 6 GeoParquet files, ~18 min
+python3 tools/build_display.py       # -> 4 display companions, ~3 min
+python3 tools/build_names.py         # -> the index and its manifest, ~5 min
+python3 tools/build_pmtiles.py       # -> 7 PMTiles archives
+python3 tools/measure_index.py       # -> docs/index-measurements.md
+python3 tools/make_styles.py         # -> the style JSONs
+python3 tools/make_collections.py    # -> 7 collection.json
+python3 tools/make_docs.py           # -> 14 README and AGENTS files
 ```
 
-Both scripts share one set of rules. `upload_data.py` imports the sentinel
-guard, the content types, the change detection, and the upload pool from
-`publish.py`. It changes one thing, the directory it walks. Only the suffixes
-in its allow-list upload, so staged scratch files stay out of the bucket.
+`tools/distributions.sql` reruns every distribution behind every style class
+break and every count the catalog's prose quotes.
+
+Four files under `catalog/` are written by hand and not generated:
+`catalog.json`, `README.md`, `AGENTS.md`, `llms.txt` and
+`changes-from-upstream.md`. Everything else there comes from a generator; see
+[`AGENTS.md`](AGENTS.md) for which.
 
 ## Test
 
@@ -66,27 +87,42 @@ python3 tests/run_all.py
 
 | Gate | What it checks |
 |---|---|
-| `test_setup.py` | Template placeholders are all edited, or all untouched |
 | `test_links.py` | Every relative link and asset href resolves |
 | `test_publish.py` | Nothing outside `catalog/` can be uploaded |
 | `test_upload_data.py` | Only staged files with an allowed suffix upload |
 | `test_stac_valid.py` | Valid STAC 1.1.0, via `stac-check` |
 | `test_conformance.py` | Portolan conformance, via `rashid` |
+| `test_styles.py` | Every legend class in every style is populated |
+| `test_index_refs.py` | The index's `geometry_ref` pointers resolve to the right row, and every file declares the same `catalog_version` |
 
-The two validator gates skip when their tools are absent, so a clean checkout
-runs with no setup. CI installs both and enforces them.
+The last two need the built data and skip when the staging tree is absent,
+which is what happens in CI. The two validator gates fail when their tools are
+absent, because a skip would report a green run for a catalog no validator
+read.
 
-## What this template does not decide
+## Publish
 
-How a published catalog points back at the repository that maintains it. Three
-encodings are in use across real catalogs and none is standardized, so this
-template ships none of them rather than freezing one in by default. The
-tradeoffs are in
-[portolan-spec#145](https://github.com/portolan-sdi/portolan-spec/issues/145)
-and in the
-[git-backed catalogs guidance](https://github.com/portolan-sdi/portolan-spec/blob/main/specs/best-practices/git-backed-catalogs.md).
+```bash
+python3 tools/publish.py             # dry run: what metadata would change
+python3 tools/publish.py --confirm   # upload the catalog
+python3 tools/upload_data.py         # dry run: what data would change
+python3 tools/upload_data.py --confirm
+```
+
+Neither ever deletes. Removing a file from `catalog/` does not unpublish it.
+
+Publishing goes through the `data.source.coop` gateway with the publisher's
+own Source Cooperative credentials, which is what `endpoint_url` in
+`catalog.publish.yaml` selects. CI with an approved IAM role would write to
+the real bucket with no `endpoint_url` — same bytes, different door.
 
 ## License
 
-Apache-2.0, covering the tooling in this repository. The data you catalog
-carries its own license, which belongs in `catalog/README.md`.
+Apache-2.0, covering the tooling in this repository.
+
+The data carries its own licensing, which is a mix: Who's On First scopes CC0
+to "the format and structure that allows Who's On First to operate" — the
+schema, not the records — and the records inherit terms from over 300 sources.
+Attribution is required. The evidence, the measured per-source shares and the
+reasoning behind the `license` field are in
+[`docs/licensing.md`](docs/licensing.md).

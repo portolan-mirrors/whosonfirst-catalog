@@ -1,0 +1,554 @@
+{
+  "type": "Collection",
+  "stac_version": "1.1.0",
+  "stac_extensions": [
+    "https://schemas.portolan-sdi.org/portolan/v0.2.0/schema.json",
+    "https://stac-extensions.github.io/table/v1.2.0/schema.json",
+    "https://stac-extensions.github.io/file/v2.1.0/schema.json",
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+  ],
+  "id": "region",
+  "title": "Who's On First Regions and Macroregions",
+  "description": "**Level 1 of this catalog's administrative ladder: `macroregion`, `region`.** First-order subdivisions — states, provinces, regions — plus the macroregions that bundle them, which exist mostly in Europe.\n\n4,362 features from Who's On First, the open gazetteer, as geocode.earth's combined admin distribution publishes it. This is place-name and boundary lookup, not address geocoding: there is no street or house number anywhere in Who's On First's admin distribution.\n\nThe GeoParquet here is **this catalog's own optimized copy**: the same 4,362 features, sorted by `(country, wof_id)` with the sort declared, in 273 exactly-full row groups of 16 (795.4 KB each), zstd compressed, with a Parquet page index and a GeoParquet 1.1 `covering` bbox. geocode.earth's combined file is the right thing to read for a scan, an export or a spatial query, and this collection links straight to it. It is the wrong thing to read for **one** place: it has 83 row groups of 65,536 rows, no declared sort, and 89% of its bytes in the geometry column, so one row group's geometry chunk is a median of 38 MiB and as much as 285 MiB — which is what any row-group-granular reader, including the hyparquet a browser uses, pays to decode a single row. Filtering to one placetype prunes nothing either, because `placetype` statistics span most of the alphabet in most row groups.\n\nBoth files are assets of this collection, and the asset descriptions say which to use when. The [agent guide](AGENTS.md) has the join keys, the traps and queries that run.\n\n**The license is a mix, and this catalog does not pretend otherwise.** Who's On First scopes CC0 to \"the format and structure that allows Who's On First to operate\" and the records inherit terms from over 300 sources, so the `license` field is `other` with links to [the per-source list](https://whosonfirst.org/docs/licenses/). Measured on this distribution's own `geom_src` column, 70.88% of the geometry is GeoNames under CC BY, 2.58% is CC0, and 14 records out of 5,423,663 are share-alike. Attribution is required: *Data from Who's On First. [License](https://whosonfirst.org/docs/licenses/).*",
+  "license": "other",
+  "keywords": [
+    "gazetteer",
+    "place names",
+    "administrative boundaries",
+    "Who's On First",
+    "WOF",
+    "multilingual",
+    "GeoParquet",
+    "PMTiles"
+  ],
+  "providers": [
+    {
+      "name": "Who's On First",
+      "description": "Produces the gazetteer. A community project, originally from Mapzen, that assembles place records from over 300 open data sources with a stable numeric identifier, a placetype hierarchy and names in hundreds of languages, and publishes the per-record geometry provenance that makes its licensing checkable.",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://whosonfirst.org/"
+    },
+    {
+      "name": "geocode.earth",
+      "description": "Builds and hosts the distributions. Who's On First lives as 260 GitHub repositories of GeoJSON; geocode.earth compiles them into combined GeoParquet, SQLite, SpatiaLite, GeoJSON-bundle and PMTiles files and serves them over HTTPS with range requests and permissive CORS. whosonfirst.org's own download page points here.",
+      "roles": [
+        "processor",
+        "host"
+      ],
+      "url": "https://geocode.earth/data/whosonfirst/combined/"
+    },
+    {
+      "name": "Portolan Mirrors",
+      "description": "Describes geocode.earth's distribution as a Portolan catalog and adds the three things a browser client cannot get from it: one GeoParquet per administrative level with small row groups, a display-simplified companion for the polygon-heavy levels, and a name index sorted for prefix search. Links to the upstream files rather than copying them wherever they already do the job. Adds no places and changes no attribute value.",
+      "roles": [
+        "processor",
+        "host"
+      ],
+      "url": "https://github.com/portolan-mirrors/whosonfirst-catalog"
+    }
+  ],
+  "extent": {
+    "spatial": {
+      "bbox": [
+        [
+          -180.0,
+          -55.979298,
+          180.0,
+          83.653984
+        ]
+      ]
+    },
+    "temporal": {
+      "interval": [
+        [
+          "2025-04-07T00:00:00Z",
+          "2025-04-07T00:00:00Z"
+        ]
+      ]
+    }
+  },
+  "updated": "2026-11-12T00:00:00Z",
+  "table:primary_geometry": "geometry",
+  "table:row_count": 4362,
+  "links": [
+    {
+      "rel": "root",
+      "href": "../catalog.json",
+      "type": "application/json",
+      "title": "Who's On First: a Cloud-Native Gazetteer"
+    },
+    {
+      "rel": "parent",
+      "href": "../catalog.json",
+      "type": "application/json",
+      "title": "Who's On First: a Cloud-Native Gazetteer"
+    },
+    {
+      "rel": "describedby",
+      "href": "./README.md",
+      "type": "text/markdown",
+      "title": "Collection README"
+    },
+    {
+      "rel": "agents",
+      "href": "./AGENTS.md",
+      "type": "text/markdown",
+      "title": "Collection agent guide"
+    },
+    {
+      "rel": "via",
+      "href": "https://geocode.earth/data/whosonfirst/combined/",
+      "type": "text/html",
+      "title": "geocode.earth combined Who's On First downloads (upstream source)"
+    },
+    {
+      "rel": "describedby",
+      "href": "https://whosonfirst.org/docs/placetypes/",
+      "type": "text/html",
+      "title": "Who's On First placetypes, the project's own definitions"
+    },
+    {
+      "rel": "cite-as",
+      "href": "https://whosonfirst.org/",
+      "type": "text/html",
+      "title": "Who's On First"
+    },
+    {
+      "rel": "license",
+      "href": "https://whosonfirst.org/docs/licenses/",
+      "type": "text/html",
+      "title": "Who's On First data licenses, source by source"
+    },
+    {
+      "rel": "license",
+      "href": "https://github.com/whosonfirst-data/whosonfirst-data/blob/master/LICENSE.md",
+      "type": "text/html",
+      "title": "Who's On First LICENSE.md"
+    },
+    {
+      "rel": "related",
+      "href": "https://source.coop/portolan-mirrors/geoboundaries-catalog",
+      "type": "text/html",
+      "title": "geoBoundaries CGAZ, a CC-BY-4.0 sibling gazetteer catalog"
+    },
+    {
+      "rel": "related",
+      "href": "https://source.coop/portolan-mirrors/cn-gazetteer-overture",
+      "type": "text/html",
+      "title": "Overture divisions, an ODbL sibling gazetteer catalog"
+    },
+    {
+      "rel": "related",
+      "href": "../country/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Countries, Dependencies and Disputed Areas"
+    },
+    {
+      "rel": "related",
+      "href": "../county/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Counties and Macrocounties"
+    },
+    {
+      "rel": "related",
+      "href": "../localadmin/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Local Administrative Units"
+    },
+    {
+      "rel": "related",
+      "href": "../locality/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Localities and Boroughs"
+    },
+    {
+      "rel": "related",
+      "href": "../neighbourhood/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Neighbourhoods, Macrohoods and Microhoods"
+    },
+    {
+      "rel": "related",
+      "href": "../names/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Gazetteer Name Index"
+    },
+    {
+      "rel": "pmtiles",
+      "href": "./region.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "Who's On First Regions and Macroregions, vector tiles",
+      "pmtiles:layers": [
+        "region"
+      ]
+    }
+  ],
+  "assets": {
+    "data": {
+      "href": "./wof_region.parquet",
+      "file:size": 222368644,
+      "file:checksum": "122011c16f452f4914aace475e35855f7b2ea6acffffa1c827286be3d1666190f625",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Regions and Macroregions, full-resolution GeoParquet 1.1 (273 row groups of 16, zstd, page index, sorted by country and wof_id)",
+      "roles": [
+        "data"
+      ],
+      "description": "Read this to clip, measure, export or analyse one place or a few. One row group is 795.4 KB, against a median of 38 MiB from the upstream combined file. The geometry is byte-identical to upstream except for the rows `geometry_repaired` flags.",
+      "table:primary_geometry": "geometry"
+    },
+    "display": {
+      "href": "./wof_region_display.parquet",
+      "file:size": 22883661,
+      "file:checksum": "1220f54174c63fff76488889ff4a43a30347dd1846d8757616423268081cd8d25de4",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Regions and Macroregions, display-simplified GeoParquet 1.1",
+      "roles": [
+        "data",
+        "visual",
+        "overview"
+      ],
+      "description": "The same rows in the same order and the same row groups as the full file, simplified with `ST_SimplifyPreserveTopology` and then buffered **outward** by the same amount, so the shape always contains the true boundary rather than cutting corners off it. The tolerance is per feature: 0.4% of that feature's own bounding-box diagonal, capped at 0.01 degrees. Point geometries are carried through untouched, because buffering a point would turn a marker into a circle. 10.3% of the full-resolution file. Draw it and filter with it; measure and clip with the full-resolution file.",
+      "table:primary_geometry": "geometry"
+    },
+    "pmtiles": {
+      "href": "./region.pmtiles",
+      "file:size": 17878862,
+      "file:checksum": "1220f317ce940bece1dd08aa22e3e40d64fbd8a3a880cd0bac73b02e22c8e149d0e8",
+      "type": "application/vnd.pmtiles",
+      "title": "Who's On First Regions and Macroregions, vector tiles",
+      "roles": [
+        "visual",
+        "data"
+      ],
+      "description": "Capped at 400 KB per tile, so a first view opens. geocode.earth's own combined archive is linked below and carries all 21 placetypes in one file, but it is built with `--no-tile-size-limit` and its whole-world tile is 15,671,392 bytes.",
+      "pmtiles:layers": [
+        "region"
+      ]
+    },
+    "upstream-geoparquet": {
+      "href": "https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "geocode.earth combined admin GeoParquet, as published",
+      "roles": [
+        "data",
+        "source"
+      ],
+      "file:size": 5948636588,
+      "file:checksum": "1220f465c3a6507b407d060bec7cfa96e95e028d7cc13fbd06739f2cc5aa4ee6de11",
+      "description": "geocode.earth built this on 2025-04-07T13:07:59Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-pmtiles": {
+      "href": "https://data.geocode.earth/wof/dist/protomaps/whosonfirst-data-admin-latest.pmtiles",
+      "type": "application/vnd.pmtiles",
+      "title": "geocode.earth combined admin PMTiles, all 21 placetypes",
+      "roles": [
+        "visual",
+        "source"
+      ],
+      "file:size": 2130846508,
+      "file:checksum": "1220179562b7f4759147f1d26ca343b58234b696f151591cc19658267d0c230d32b4",
+      "description": "geocode.earth built this on 2025-10-14T15:28:42Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-sqlite": {
+      "href": "https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2",
+      "type": "application/x-bzip2",
+      "title": "geocode.earth combined admin SQLite, bzip2 (42.4 GB unpacked)",
+      "roles": [
+        "data",
+        "source"
+      ],
+      "file:size": 8596204210,
+      "file:checksum": "12201aa4bffcdec60a865f2f77688479313f83ed6b078d3c4c755ce12b941475b7b1",
+      "description": "geocode.earth built this on 2025-10-14T10:19:29Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-spatialite": {
+      "href": "https://data.geocode.earth/wof/dist/spatial/whosonfirst-data-admin-latest.spatial.db.bz2",
+      "type": "application/x-bzip2",
+      "title": "geocode.earth combined admin SpatiaLite, bzip2 (34.2 GB unpacked)",
+      "roles": [
+        "data",
+        "source"
+      ],
+      "file:size": 9827339205,
+      "file:checksum": "12206ab9101e4a0e8932ad2567386045585c05012b52c26a2624515067ac98579363",
+      "description": "geocode.earth built this on 2025-10-14T11:57:36Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-geojson": {
+      "href": "https://data.geocode.earth/wof/dist/bundles/whosonfirst-data-admin-latest.tar.bz2",
+      "type": "application/x-tar",
+      "title": "geocode.earth combined admin GeoJSON bundle, bzip2",
+      "roles": [
+        "data",
+        "source"
+      ],
+      "file:size": 4592915438,
+      "file:checksum": "1220af2810d168f914f8dd6dace4c8e2924d9ef9c446feced4d970854398df2f7d01",
+      "description": "geocode.earth built this on 2025-10-14T10:19:37Z. There are no versioned URLs: every file is named `-latest` and is overwritten in place, so the date and the digest come from their inventory rather than from the URL. The HTTP `Last-Modified` header on every object under `/wof/dist/` reads 2025-10-30 because the bucket was re-copied then, and is not a vintage signal."
+    },
+    "upstream-inventory": {
+      "href": "https://data.geocode.earth/wof/dist/parquet/inventory.json",
+      "type": "application/json",
+      "title": "geocode.earth GeoParquet inventory: vintage, members, digests",
+      "roles": [
+        "metadata",
+        "source"
+      ]
+    },
+    "upstream-members": {
+      "href": "https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet.json",
+      "type": "application/json",
+      "title": "The 260 member repositories and commits of this GeoParquet build",
+      "roles": [
+        "metadata",
+        "source"
+      ]
+    },
+    "style-default": {
+      "href": "./styles/default.json",
+      "file:size": 835,
+      "file:checksum": "1220e85212f28b0f3a0f2c64bf7b9dc0ef3440fc73b618b5aca0dd6527249af80808",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Placetype",
+      "roles": [
+        "style",
+        "default"
+      ]
+    },
+    "style-geometry-source": {
+      "href": "./styles/geometry-source.json",
+      "file:size": 988,
+      "file:checksum": "1220aa78bbf9ef7ff792f547a71ed51f831992f5fafcde27feaa14b426292f03b6e0",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Who drew the outline",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-outline-detail": {
+      "href": "./styles/outline-detail.json",
+      "file:size": 977,
+      "file:checksum": "12209ba4bb7fe117cc499a2834b1ee56cdb255a9838f275f6297757bd2094380ebd7",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Coordinates per outline",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-placetype": {
+      "href": "./styles/placetype.json",
+      "file:size": 835,
+      "file:checksum": "1220e85212f28b0f3a0f2c64bf7b9dc0ef3440fc73b618b5aca0dd6527249af80808",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Placetype",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-population": {
+      "href": "./styles/population.json",
+      "file:size": 974,
+      "file:checksum": "1220e0390b96a43de1d1404c585201e4136cc6b55cdf32304c635ee4eedec79955ca",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "Population",
+      "roles": [
+        "style"
+      ]
+    },
+    "style-prominence": {
+      "href": "./styles/prominence.json",
+      "file:size": 940,
+      "file:checksum": "1220e2c332b88a6a3be332909c105c379456e496b63589dc287f6b1d75659fff96df",
+      "type": "application/vnd.mapbox.style+json",
+      "title": "How early it appears on a map",
+      "roles": [
+        "style"
+      ]
+    },
+    "thumbnail": {
+      "href": "./region.thumb.png",
+      "file:size": 147161,
+      "file:checksum": "12206e9ca1428230b939e22db798d87f1c450621c108f271def780e907baef19bb14",
+      "type": "image/png",
+      "title": "Who's On First Regions and Macroregions, rendered from the default style",
+      "roles": [
+        "thumbnail"
+      ]
+    }
+  },
+  "table:columns": [
+    {
+      "name": "wof_id",
+      "type": "string",
+      "description": "Attested. The Who's On First identifier, and the key everything in this catalog joins on. WOF documents `wof:id` as \"The record's unique numeric integer identifier that are typically derived from Brooklyn Integers\" ([wof properties](https://whosonfirst.org/docs/properties/wof/)). It is published here as a decimal string rather than an integer so that this file, the gazetteer index and `parent_id` all join without a cast; upstream it is an INT32."
+    },
+    {
+      "name": "parent_id",
+      "type": "string",
+      "description": "Attested. The `wof_id` of the direct parent record, as a string. WOF reserves four negative values, and **they are not ids**: `-1` \"unknown parent, record needs review\", `-2` \"shrug, this feature is complicated\", `-3` \"contested, but not disputed.. used for placetypes below the locality level\", `-4` \"multiple 'legal' parents.. used for placetypes at the locality level or above\" ([wof properties](https://whosonfirst.org/docs/properties/wof/)). This build maps `-1` to null; the other three are carried through, so a join on `parent_id` has to exclude them."
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "description": "Attested. The display name. WOF documents `wof:name` as \"An English UTF-7 transliterated representation of the name\" — the encoding name is a typo in WOF's own documentation for UTF-8, and the values are UTF-8. Its names documentation is the useful statement: \"`wof:name` is English by default and is a string (rather than a list of strings) that can be used for labels\" ([wof names](https://whosonfirst.org/docs/names/)). Every other language lives in the `names` collection, one row per spelling."
+    },
+    {
+      "name": "placetype",
+      "type": "string",
+      "description": "Attested. The WOF placetype, which is what WOF has instead of an administrative level. The canonical list, each one's role and its permitted parents are in [whosonfirst-placetypes](https://github.com/whosonfirst/whosonfirst-placetypes); the project's own website page for them is out of date. WOF's definitions are blunt and worth reading: a `region` holds \"places that would have a bone in a 'states rights' argument\", a `locality` is \"Towns and cities, independent of size or population. Things with neighbourhoods, basically\", a `borough` is \"A local government unit, below the `locality` placetype. Think Brooklyn\"."
+    },
+    {
+      "name": "level",
+      "type": "int8",
+      "description": "Derived. This catalog's mapping of `placetype` onto the 0-based administrative ladder a name search needs: 0 country, dependency and disputed; 1 macroregion and region; 2 macrocounty and county; 3 localadmin; 4 locality and borough; 5 macrohood, neighbourhood and microhood. **Who's On First publishes no such number.** A level here is a tier, and a tier can hold a unit and its own subdivision, because WOF inserts `macroregion` above `region` and `microhood` below `neighbourhood` without adding a rung anyone else recognizes. The mapping is defined once, in `PLACETYPE_LEVEL` in `tools/wofcommon.py`."
+    },
+    {
+      "name": "country",
+      "type": "string",
+      "description": "Derived. ISO 3166-1 alpha-3, mapped from WOF's own two-letter code through the official ISO 3166-1 table packaged with pycountry, so this catalog and its two sibling gazetteer catalogs can be filtered with one code system. WOF's six synthetic codes have no alpha-3 and are carried through unchanged: see `country_iso2`."
+    },
+    {
+      "name": "country_iso2",
+      "type": "string",
+      "description": "Attested. WOF's own code, byte for byte. Documented as \"A two-letter country code from ISO 3166\" ([wof properties](https://whosonfirst.org/docs/properties/wof/)), with six codes WOF mints itself and ISO does not have ([whosonfirst-placetypes](https://github.com/whosonfirst/whosonfirst-placetypes)): `XK` Kosovo (\"We just followed Geonames' lead\"), `XN` Null Island, `XS` Somaliland, `XX` \"a place disputed by two or more (ISO) countries\", `XY` \"an ISO country that has yet to be determined (by us)\", `XZ` \"the ISO country code equivalent of `wof:parent_id=-2`\"."
+    },
+    {
+      "name": "placetype_local",
+      "type": "string",
+      "description": "Attested. \"What locals consider the placetype to be (string value)\" ([wof properties](https://whosonfirst.org/docs/properties/wof/), `wof:placetype_local`). Free text and in the local language or English depending on the record: `district`, `voivodeship`, `département`. Useful for a label, not for a filter."
+    },
+    {
+      "name": "repo",
+      "type": "string",
+      "description": "Attested. The `whosonfirst-data-admin-{cc}` GitHub repository this record comes from. geocode.earth's combined distribution is the union of 260 of them, and this column is what says which. The members of the build are listed in its sidecar manifest, `whosonfirst-data-admin-latest.parquet.json`."
+    },
+    {
+      "name": "lat",
+      "type": "double",
+      "description": "Attested. \"The latitude of a feature's geometric centroid\" ([geom properties](https://whosonfirst.org/docs/properties/geom/), `geom:latitude`). It is a centroid, so for a concave or multipart feature it can fall outside the feature. WOF publishes a separate hand-placed label point under `lbl:latitude`, which geocode.earth's parquet build does not carry."
+    },
+    {
+      "name": "lon",
+      "type": "double",
+      "description": "Attested. \"The longitude of a feature's geometric centroid\" ([geom properties](https://whosonfirst.org/docs/properties/geom/), `geom:longitude`). See `lat`."
+    },
+    {
+      "name": "min_zoom",
+      "type": "float",
+      "description": "Attested. WOF's own answer to how early a place should appear on a map. `mz:min_zoom` and `mz:max_zoom` are \"Float values (though in practice mosts are integer values) that match to web map zoom schema. Common range is 0.0 to 18.0, though they can be greater\" ([mz properties](https://whosonfirst.org/docs/properties/mz/)). For a gazetteer this is a better prominence signal than area, and no other catalog in this family has it."
+    },
+    {
+      "name": "max_zoom",
+      "type": "float",
+      "description": "Attested. The upper end of the same pair. See `min_zoom`."
+    },
+    {
+      "name": "min_label",
+      "type": "float",
+      "description": "Researched. The zoom at which a label for this place should first be drawn. **WOF publishes no definition for `mz:min_label` or `mz:max_label`** — neither appears on the [mz properties page](https://whosonfirst.org/docs/properties/mz/), which documents `min_zoom` and `max_zoom` only. Pelias reads the pair for label placement, and the values here sit slightly above the matching `min_zoom`, which is consistent with \"draw the shape at min_zoom, the label at min_label\". Treat the meaning as inferred rather than stated."
+    },
+    {
+      "name": "max_label",
+      "type": "float",
+      "description": "Researched. The upper end of the same undocumented pair. See `min_label`."
+    },
+    {
+      "name": "population",
+      "type": "int64",
+      "description": "Attested. \"An integer value to represent the most current, known population of a place\" ([wof properties](https://whosonfirst.org/docs/properties/wof/), `wof:population`). Present only where a source supplied one, which is a minority of records at every level; the per-level coverage is in this collection's README. WOF also publishes `wof:population_rank` on a 0-to-14 band scale, which geocode.earth's parquet build does not carry."
+    },
+    {
+      "name": "is_funky",
+      "type": "int8",
+      "description": "Attested. WOF's own \"needs a human\" flag. `mz:is_funky`: \"-1 is unknown, or TBD (needs the love and care of a human) / 0 is false / 1 is true\" ([mz properties](https://whosonfirst.org/docs/properties/mz/)). Almost always absent, so a null means \"not flagged\", not \"fine\"."
+    },
+    {
+      "name": "modified",
+      "type": "date",
+      "description": "Attested. When the WOF record last changed. WOF stores `wof:lastmodified` as \"A Unix epoch timestamp integer\" ([wof properties](https://whosonfirst.org/docs/properties/wof/)); geocode.earth's build converts it to a date. It is the record's date, not this distribution's: the GeoParquet build itself is from 2025-04-07."
+    },
+    {
+      "name": "country_wof_id",
+      "type": "string",
+      "description": "Researched. The `wof_id` of the country this record sits in, flattened out of WOF's `wof:hierarchy` ([wof properties](https://whosonfirst.org/docs/properties/wof/): \"A list of hashes, where each object is the list of ancestors\") by geocode.earth's parquet build. The full hierarchy, including records with several parents, is **not** in the GeoParquet; it is in the SQLite and GeoJSON distributions."
+    },
+    {
+      "name": "region_wof_id",
+      "type": "string",
+      "description": "Researched. The `wof_id` of the containing region, from the same flattened hierarchy. See `country_wof_id`."
+    },
+    {
+      "name": "county_wof_id",
+      "type": "string",
+      "description": "Researched. The `wof_id` of the containing county, from the same flattened hierarchy. See `country_wof_id`."
+    },
+    {
+      "name": "iso_code",
+      "type": "string",
+      "description": "Derived. An ISO 3166-2 subdivision code, such as `AL-01`. Measured: present on 4,082 of 4,362 level-1 features and almost nowhere else. It arrives from WOF's `iso:code` concordance, so it is the same value a `concordance_keys = 'iso:code'` row carries."
+    },
+    {
+      "name": "hasc_id",
+      "type": "string",
+      "description": "Researched. A Hierarchical Administrative Subdivision Code, such as `AR.CT`. One of the identifier systems WOF keeps concordances against ([concordances](https://whosonfirst.org/docs/concordances/)). Mostly populated at level 1."
+    },
+    {
+      "name": "geonames_id",
+      "type": "string",
+      "description": "Researched. The [GeoNames](https://www.geonames.org/) identifier for the same place, from WOF's `gn:id` concordance. This is the most useful column in the file for cross-referencing, because GeoNames is also where most of the geometry came from: 3,843,415 of this distribution's records carry `geom_src = 'geonames'`."
+    },
+    {
+      "name": "wikidata_id",
+      "type": "string",
+      "description": "Researched. The [Wikidata](https://www.wikidata.org/) Q-identifier, from WOF's `wd:id` concordance."
+    },
+    {
+      "name": "concordance_keys",
+      "type": "string",
+      "description": "Derived. **One** concordance key, not the set. WOF's `wof:concordances` is \"A hash containing identifiers from other data sources\" ([wof properties](https://whosonfirst.org/docs/properties/wof/)) and a record often holds several; geocode.earth's parquet build flattens it to a single key/id pair beside the separate `gn_id`, `wd_id` and `hasc_id` columns. Measured at level 1: 30 distinct keys over 4,282 populated rows, led by `iso:code` (2,830), `qs:local_id` (491) and `os:census_code` (178). If you need the whole concordance set, read the SQLite or GeoJSON distribution instead."
+    },
+    {
+      "name": "concordance_ids",
+      "type": "string",
+      "description": "Derived. The identifier belonging to `concordance_keys`. See that column for why there is only one."
+    },
+    {
+      "name": "geom_src",
+      "type": "string",
+      "description": "Attested. **The provenance and licensing key, and the most important column here.** WOF documents `src:geom` as \"The data source of a record's geometry. Valid property values are listed in the whosonfirst-sources repository\" ([src properties](https://whosonfirst.org/docs/properties/src/)). Join it to [sources-spec-latest.json](https://github.com/whosonfirst/whosonfirst-sources) and a specific feature's license is a fact rather than an average. Measured over the whole distribution: `geonames` 3,843,415, `karmashapes` 866,821, `quattroshapes` 180,884, `qs_pg` 144,246, `frgov` 69,118, `mz` 51,832, `whosonfirst` 45,222, `uscensus` 36,472."
+    },
+    {
+      "name": "area_km2",
+      "type": "double",
+      "description": "Derived. Geodesic area in square kilometres, from DuckDB's `ST_Area_Spheroid`. Reproducible, not official: it is measured on the geometry in this file, which for a feature whose outline was carried up from a coarser source is not that place's surveyed area. A point feature is 0."
+    },
+    {
+      "name": "perimeter_km",
+      "type": "double",
+      "description": "Derived. Geodesic perimeter in kilometres, from `ST_Perimeter_Spheroid`. Paired with `area_km2` it gives a compactness measure without reprojecting anything."
+    },
+    {
+      "name": "vertices",
+      "type": "int32",
+      "description": "Derived. Coordinates in the geometry, from `ST_NPoints`. This is the number behind this catalog's display files: a median country is 4,866 coordinates and a median locality is 1. A value of 1 means the geometry is a point, not a polygon."
+    },
+    {
+      "name": "geometry_repaired",
+      "type": "boolean",
+      "description": "Derived. True where the upstream geometry failed `ST_IsValid` and this build rebuilt it with `ST_MakeValid` and `ST_CollectionExtract(..., 3)`. 480 of 5,405,294 features across the catalog: 29 regions, 74 counties, 44 local administrative units, 307 localities, 26 neighbourhoods. Every other geometry is written through unchanged. The repair exists because `ST_Intersection` against an invalid polygon raises `TopologyException` and takes the whole query with it; geocode.earth's own file is where to read the unrepaired shape."
+    },
+    {
+      "name": "bbox",
+      "type": "struct",
+      "description": "Derived. The feature's bounding box in EPSG:4326 degrees, as four doubles declared in the GeoParquet 1.1 `covering` metadata, so a reader can prune row groups spatially without decoding any geometry."
+    },
+    {
+      "name": "geometry",
+      "type": "byte_array",
+      "description": "Attested. WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags. A point where `vertices = 1`, otherwise a Polygon or MultiPolygon."
+    }
+  ],
+  "portolan:level": 1
+}

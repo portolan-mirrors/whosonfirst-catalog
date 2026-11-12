@@ -66,6 +66,7 @@ from wofcommon import (  # noqa: E402
     boundary_path,
     connect,
     display_path,
+    geom_src_group_sql,
     human,
     pmtiles_path,
     run,
@@ -86,6 +87,13 @@ FEATURE_FIELDS = [
     "vertices",
     "is_funky",
 ]
+
+# Derived into the tiles rather than into the published GeoParquet. `geom_src`
+# is long-tailed -- one level has 66 distinct values -- so the provenance
+# style paints a grouping of it instead, defined once in
+# wofcommon.GEOM_SRC_GROUPS. The raw column travels into the tiles too, for a
+# popup.
+DERIVED_FIELDS = ["geom_src_group"]
 
 MAX_ZOOM = {
     "country": 6,
@@ -169,9 +177,11 @@ def build(target: str) -> None:
         con.sql(f"SELECT * FROM read_parquet('{full.as_posix()}') LIMIT 0").columns
     )
     fields = [f for f in FEATURE_FIELDS if f in present]
+    cols = ", ".join(f"f.{f}" for f in fields)
+    cols += f", {geom_src_group_sql('f.geom_src')} AS geom_src_group"
+    fields = fields + DERIVED_FIELDS
     scratch = WORK / f"{target}.tiles.parquet"
     scratch.unlink(missing_ok=True)
-    cols = ", ".join(f"f.{f}" for f in fields)
 
     if level in DISPLAY_LEVELS:
         disp = display_path(target)

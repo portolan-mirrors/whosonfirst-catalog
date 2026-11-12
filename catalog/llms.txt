@@ -1,0 +1,179 @@
+# Who's On First: a Cloud-Native Gazetteer
+
+> Who's On First, the open gazetteer, as geocode.earth distributes it, with
+> the few files a browser needs to search it. 5,405,294 named administrative
+> places from country down to microhood, six boundary collections plus a
+> 9,478,779-row name index sorted for prefix search. Static files on object
+> storage, no API, no credentials. Produced by Who's On First; distributed by
+> geocode.earth; this catalog describes and extends, it does not produce.
+
+Public root:
+https://data.source.coop/portolan-mirrors/whosonfirst-catalog/catalog.json
+
+**This is place-name and boundary lookup, not address geocoding.** Who's On
+First's administrative distribution holds no street and no house number.
+
+This is a Portolan catalog, which is STAC 1.1.0 plus the Portolan profile.
+Every file is readable in place over HTTPS range requests. Seven collections,
+each with a collection.json, a README.md for humans, an AGENTS.md for machine
+clients, GeoParquet, PMTiles and measured MapLibre styles.
+
+## A metadata-first catalog
+
+Unusually for a mirror, this catalog does **not** copy the upstream bytes.
+geocode.earth's own files are already cloud-native, so every collection links
+straight to them — GeoParquet, PMTiles, SQLite, SpatiaLite, GeoJSON bundle —
+with the size and sha256 their inventory records.
+
+What it builds is only what a measurement says those files cannot do:
+
+1. One GeoParquet per level with small row groups. From the upstream combined
+   file, one place's geometry costs a median of 38 MiB and up to 285 MiB,
+   because it has 83 row groups of 65,536 rows and 89% of its bytes in one
+   column.
+2. A display-simplified companion for levels 0 to 3, and not for 4 and 5,
+   where the median feature is a single point.
+3. PMTiles capped at 400 KB per tile. The upstream archive is built with
+   `--no-tile-size-limit` and its whole-world tile is 15,671,392 bytes.
+4. A name index, which has no upstream equivalent in any format.
+
+Every deviation and every measurement is in
+https://data.source.coop/portolan-mirrors/whosonfirst-catalog/changes-from-upstream.md
+
+## License: a mix, attribution required, no share-alike
+
+Who's On First scopes CC0 to "the format and structure that allows Who's On
+First to operate" — the schema, not the records — and the records inherit
+terms from over 300 sources. The STAC `license` is therefore `other` with
+license links, not an SPDX identifier.
+
+Measured on the distribution's own `geom_src` column: 70.88% of the geometry
+is GeoNames under CC BY, 2.58% is CC0, and 14 records of 5,423,663 are
+share-alike. No ODbL source contributes geometry.
+
+Show this:
+
+    Data from Who's On First. License: https://whosonfirst.org/docs/licenses/
+
+`geom_src` is on every row of every boundary file. Join it to
+https://github.com/whosonfirst/whosonfirst-sources and a specific place's
+license is a fact rather than an average.
+
+## Read these first
+
+- [Catalog agent
+  guide](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/AGENTS.md):
+  the collections, the join keys, and the eight traps that produce wrong
+  answers.
+- [Catalog
+  README](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/README.md):
+  what is here, which file to read, the license, and how a browser gazetteer
+  consumes it end to end.
+- [Gazetteer index
+  guide](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/names/AGENTS.md):
+  the range-request path, multilingual lookup, and the join back to geometry.
+- [Index
+  manifest](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/names/index.json):
+  fetch this before the index itself.
+- [Changes from the upstream
+  distribution](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/changes-from-upstream.md).
+- [Root
+  catalog.json](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/catalog.json):
+  the STAC entry point.
+
+## Collections
+
+Who's On First has no administrative level number. `level` is this catalog's
+mapping of WOF placetypes onto a 0-based ladder, and a level is a *tier* that
+can hold a unit and its own subdivision.
+
+- [country](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/country/collection.json):
+  level 0, 353 places — `country`, `dependency`, `disputed`.
+- [region](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/region/collection.json):
+  level 1, 4,362 places — `macroregion`, `region`.
+- [county](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/county/collection.json):
+  level 2, 42,115 places — `macrocounty`, `county`.
+- [localadmin](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/localadmin/collection.json):
+  level 3, 164,756 places — `localadmin`.
+- [locality](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/locality/collection.json):
+  level 4, 4,796,292 places — `locality`, `borough`.
+- [neighbourhood](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/neighbourhood/collection.json):
+  level 5, 397,416 places — `macrohood`, `neighbourhood`, `microhood`.
+- [names](https://data.source.coop/portolan-mirrors/whosonfirst-catalog/names/collection.json):
+  the gazetteer index, 9,478,779 rows (5,405,294 places + 4,073,485
+  alternative spellings), sorted by a folded form of the name.
+
+## Data files
+
+- .../country/wof_country.parquet, .../country/wof_country_display.parquet
+- .../region/wof_region.parquet, .../region/wof_region_display.parquet
+- .../county/wof_county.parquet, .../county/wof_county_display.parquet
+- .../localadmin/wof_localadmin.parquet, .../localadmin/wof_localadmin_display.parquet
+- .../locality/wof_locality.parquet
+- .../neighbourhood/wof_neighbourhood.parquet
+- .../names/wof_names.parquet, .../names/index.json
+- one `.pmtiles` per collection
+
+all under
+https://data.source.coop/portolan-mirrors/whosonfirst-catalog/
+
+The `*_display.parquet` files exist only for levels 0 to 3, and are
+**buffered outward on purpose**, so neighbours overlap. Draw and filter with
+them; measure and clip with the full-resolution files.
+
+## Start a query
+
+```sql
+INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
+
+-- Everything called Kyoto, in any of the 25 languages this index carries.
+SELECT name, name_lang, level, placetype, country, parent_name, population
+FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/names/wof_names.parquet'
+WHERE name_norm = 'kyoto'
+ORDER BY level, population DESC NULLS LAST;
+```
+
+## The things that produce wrong answers
+
+1. `level` is this catalog's mapping, not WOF's. WOF has placetypes, not
+   levels.
+2. 84% of localities and neighbourhoods are **points**, not polygons, because
+   most come from GeoNames. Check `vertices = 1`, or `is_point` in the index.
+3. `parent_id` is not always an identifier: WOF reserves `-1`, `-2`, `-3` and
+   `-4` as sentinels, and this build maps only `-1` to null.
+4. **Nothing here says whether a place still exists.** `mz:is_current`,
+   `edtf:cessation`, `edtf:deprecated` and `wof:superseded_by` are not in the
+   GeoParquet distribution.
+5. The index carries 25 languages. Who's On First carries hundreds; they are
+   in the SQLite and GeoJSON distributions.
+6. The GeoParquet vintage is 2025-04-07, six months behind the SQLite,
+   SpatiaLite, GeoJSON and PMTiles builds of the same repository. HTTP
+   `Last-Modified` is not a vintage signal upstream.
+7. The full `wof:hierarchy` and `wof:concordances` are not here: this
+   distribution keeps three ancestor-id columns and **one** concordance pair.
+8. An alternative-spelling row in the index repeats its place's `feature_id`.
+   Dedupe on it, or the same city appears once per language.
+9. `geometry_ref` is advisory. Verify the `wof_id` of the row it points at
+   before trusting that row's geometry.
+
+## Optional
+
+- [geocode.earth's combined Who's On First
+  downloads](https://geocode.earth/data/whosonfirst/combined/): the upstream
+  distribution, plus the per-country and per-placetype alternatives.
+- [Who's On First placetypes](https://github.com/whosonfirst/whosonfirst-placetypes):
+  the project's own definitions, which are more current than its website.
+- [Who's On First licenses](https://whosonfirst.org/docs/licenses/) and
+  [whosonfirst-sources](https://github.com/whosonfirst/whosonfirst-sources):
+  the per-source licensing, and the key `geom_src` resolves against.
+- [geoboundaries-catalog](https://source.coop/portolan-mirrors/geoboundaries-catalog):
+  a CC-BY-4.0 sibling gazetteer catalog, same index contract, stops at the
+  second administrative level.
+- [cn-gazetteer-overture](https://source.coop/portolan-mirrors/cn-gazetteer-overture):
+  an ODbL sibling, same index contract, hundreds of languages, share-alike.
+- [Source
+  repository](https://github.com/portolan-mirrors/whosonfirst-catalog): the
+  pipeline, the upstream and index measurements, the licensing evidence, and
+  the issue tracker.
+- [Portolan specification](https://github.com/portolan-sdi/portolan-spec):
+  what this catalog conforms to.

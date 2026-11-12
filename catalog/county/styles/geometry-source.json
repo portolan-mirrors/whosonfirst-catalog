@@ -1,0 +1,50 @@
+{
+  "version": 8,
+  "name": "Who drew the outline",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../county.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "county-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "county",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "geom_src_group"
+          ],
+          "mesoshapes",
+          "#665216",
+          "quattroshapes",
+          "#c4a74c",
+          "official",
+          "#eee0b3",
+          "unknown",
+          "#9c822c",
+          "whosonfirst",
+          "#ddc67c",
+          "#cfcfcf"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "county-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "county",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

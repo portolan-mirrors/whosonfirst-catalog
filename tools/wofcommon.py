@@ -109,6 +109,86 @@ UPSTREAM_NEWER_WOF_COMMIT = (
 UPSTREAM_NEWER_WOF_COMMIT_DATE = "2025-10-14T04:33:58Z"
 EXTRACTION_DATE = "2026-11-12"
 
+# geocode.earth's own files, as its inventories describe them. Each entry is
+# published as an asset with role `source`, so a reader can fetch the
+# authoritative original without leaving the catalog, and each carries the
+# size and sha256 the inventory records so a reader can verify it.
+#
+# `built` is the inventory's `last_modified`, which is the only vintage signal
+# there is; see the note on UPSTREAM_PARQUET_BYTES above for why the HTTP
+# header is not one. The parquet build is six months older than the rest.
+UPSTREAM_ASSETS = (
+    {
+        "key": "upstream-geoparquet",
+        "url": UPSTREAM_PARQUET,
+        "media_type": "application/vnd.apache.parquet",
+        "title": "geocode.earth combined admin GeoParquet, as published",
+        "roles": ["data", "source"],
+        "size": 5_948_636_588,
+        "sha256": "f465c3a6507b407d060bec7cfa96e95e028d7cc13fbd06739f2cc5aa4ee6de11",
+        "built": "2025-04-07T13:07:59Z",
+    },
+    {
+        "key": "upstream-pmtiles",
+        "url": UPSTREAM_PMTILES,
+        "media_type": "application/vnd.pmtiles",
+        "title": "geocode.earth combined admin PMTiles, all 21 placetypes",
+        "roles": ["visual", "source"],
+        "size": 2_130_846_508,
+        "sha256": "179562b7f4759147f1d26ca343b58234b696f151591cc19658267d0c230d32b4",
+        "built": "2025-10-14T15:28:42Z",
+    },
+    {
+        "key": "upstream-sqlite",
+        "url": UPSTREAM_SQLITE,
+        "media_type": "application/x-bzip2",
+        "title": "geocode.earth combined admin SQLite, bzip2 (42.4 GB unpacked)",
+        "roles": ["data", "source"],
+        "size": 8_596_204_210,
+        "sha256": "1aa4bffcdec60a865f2f77688479313f83ed6b078d3c4c755ce12b941475b7b1",
+        "built": "2025-10-14T10:19:29Z",
+    },
+    {
+        "key": "upstream-spatialite",
+        "url": UPSTREAM_SPATIAL,
+        "media_type": "application/x-bzip2",
+        "title": "geocode.earth combined admin SpatiaLite, bzip2 (34.2 GB unpacked)",
+        "roles": ["data", "source"],
+        "size": 9_827_339_205,
+        "sha256": "6ab9101e4a0e8932ad2567386045585c05012b52c26a2624515067ac98579363",
+        "built": "2025-10-14T11:57:36Z",
+    },
+    {
+        "key": "upstream-geojson",
+        "url": UPSTREAM_BUNDLE,
+        "media_type": "application/x-tar",
+        "title": "geocode.earth combined admin GeoJSON bundle, bzip2",
+        "roles": ["data", "source"],
+        "size": 4_592_915_438,
+        "sha256": "af2810d168f914f8dd6dace4c8e2924d9ef9c446feced4d970854398df2f7d01",
+        "built": "2025-10-14T10:19:37Z",
+    },
+    {
+        "key": "upstream-inventory",
+        "url": PARQUET_INVENTORY,
+        "media_type": "application/json",
+        "title": "geocode.earth GeoParquet inventory: vintage, members, digests",
+        "roles": ["metadata", "source"],
+    },
+    {
+        "key": "upstream-members",
+        "url": f"{UPSTREAM_PARQUET}.json",
+        "media_type": "application/json",
+        "title": "The 260 member repositories and commits of this GeoParquet build",
+        "roles": ["metadata", "source"],
+    },
+)
+
+
+def multihash_sha256(hexdigest: str) -> str:
+    """A sha2-256 multihash, which is what `file:checksum` carries."""
+    return "1220" + hexdigest
+
 # The version string the geocoder pins an index against (design doc §6.4). It
 # appears in the index manifest and in the footer metadata of every file this
 # build writes, and all of them must agree.
@@ -203,6 +283,84 @@ ZSTD_LEVEL = 15
 
 
 # ---------------------------------------------------------------------------
+# Geometry provenance, grouped
+# ---------------------------------------------------------------------------
+# `geom_src` is WOF's `src:geom`, "The data source of a record's geometry",
+# and it is the most informative column in the whole distribution: it is the
+# provenance key, the quality key and the licensing key at once. It is also
+# long-tailed. Measured over the six collections, one level has 66 distinct
+# values, and a legend with 66 entries is not a legend.
+#
+# So this is the grouping the provenance style paints, defined once here and
+# used by tools/build_pmtiles.py (which materializes it into the tiles),
+# tools/make_styles.py (which measures it and builds the `match`) and
+# tests/test_styles.py (which re-measures it). The raw `geom_src` stays in the
+# published GeoParquet untouched; this is a view of it, not a replacement.
+#
+# The classes answer the question a reader actually has -- was this outline
+# drawn by a government, derived from a point gazetteer, or crowd-sourced? --
+# and together they cover every row, so nothing lands in a fallback colour.
+# Each prefix is a `whosonfirst-sources` identifier
+# (https://github.com/whosonfirst/whosonfirst-sources).
+GEOM_SRC_GROUPS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "geonames": (
+        "GeoNames, a point gazetteer under CC BY 4.0",
+        ("geonames",),
+    ),
+    "quattroshapes": (
+        "Quattroshapes, shapes inferred from geotagged photographs",
+        ("quattroshapes", "qs_pg", "quattroshapes_pg", "qs"),
+    ),
+    "karmashapes": (
+        "Karmashapes, Mapzen's own shape derivation",
+        ("karmashapes",),
+    ),
+    "mesoshapes": (
+        "Mesoshapes and Zetashapes, earlier shape derivations",
+        ("meso", "mesoshapes", "zetashapes"),
+    ),
+    "whosonfirst": (
+        "Drawn or edited by the Who's On First project itself",
+        ("whosonfirst", "wof", "mz", "mapzen", "woedb", "pedia"),
+    ),
+    "natural-earth": (
+        "Natural Earth, public domain",
+        ("naturalearth",),
+    ),
+    "official": (
+        "A government or national mapping agency",
+        (),  # the default for a named source that is none of the above
+    ),
+    "unknown": (
+        "Not recorded upstream",
+        ("unknown",),
+    ),
+}
+
+GEOM_SRC_GROUP_ORDER = tuple(GEOM_SRC_GROUPS)
+
+
+def geom_src_group_sql(column: str = "geom_src") -> str:
+    """A SQL CASE expression mapping `geom_src` onto GEOM_SRC_GROUPS.
+
+    One definition, three callers. A second copy of this logic is a second
+    chance for the legend and the data to disagree.
+    """
+    branches = []
+    for name, (_, prefixes) in GEOM_SRC_GROUPS.items():
+        if not prefixes:
+            continue
+        values = ", ".join(f"'{p}'" for p in prefixes)
+        branches.append(f"WHEN {column} IN ({values}) THEN '{name}'")
+    return (
+        "CASE "
+        f"WHEN {column} IS NULL OR {column} = '' THEN 'unknown' "
+        + " ".join(branches)
+        + " ELSE 'official' END"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Layout targets
 # ---------------------------------------------------------------------------
 # Rows per row group, chosen per collection from the measured vertex count per
@@ -273,14 +431,38 @@ SIMPLIFY_TOLERANCE = {
 # The index contract asks for 100-150 KiB per row group, and that is right for
 # the index it was measured on: 2.5 MB, where the Parquet footer is a rounding
 # error. It is the wrong target at this scale. The footer carries one thrift
-# record per column per row group, and a range client reads the whole footer
+# record per column per row group -- about 2,254 bytes per row group for this
+# schema's 22 columns, measured -- and a range client reads the whole footer
 # before it can read anything, so shrinking the groups grows what the first
-# keystroke costs. The sibling Overture index measured the knee at 6,400 rows
-# for 5.6M rows; this index is the same order of magnitude, so it takes the
-# same figure, and tools/measure_index.py reprints the table for the file
-# actually built.
-NAMES_ROW_GROUP_ROWS = 6400
-NAMES_ROW_GROUP_TARGET_KIB = (400, 560)
+# keystroke costs. The rule is to minimize *footer plus one row group*.
+#
+# Measured on this index (9,478,779 rows), both settings built and measured
+# with tools/measure_index.py, statistics restricted to the four prunable
+# columns in each:
+#
+#   rows/group  groups     footer  page index  per group  footer + 1 group
+#        6,400   1,482  3,341,322     853,390    399 KiB           3.58 MB
+#       12,800     741  1,713,207     431,645    796 KiB           2.41 MB
+#
+# 12,800 is the knee: it answers a cold first keystroke in 2.41 MB against
+# 3.58 MB, at the cost of 397 KiB more on a later keystroke that keeps the
+# same prefix -- which a client usually does not pay, because typing one more
+# letter stays inside the same row group it already holds. Halving the group
+# count again would save about 0.85 MB more on the cold path and double the
+# warm one, which is the wrong way round for an autocomplete.
+#
+# It also tightened the worst case: the number of row groups a two-character
+# prefix can touch fell from 47 to 24, because a prefix spans a contiguous
+# byte range and fewer, larger groups cover it with fewer pieces.
+#
+# The sibling Overture index chose 6,400 for 5.6M rows and 17 columns, where
+# the footer was 2.05 MB; this index has 1.7x the rows and more columns, so
+# the footer is a bigger share of the cold read and the knee moves.
+#
+# tools/measure_index.py reprints these numbers for the file actually built,
+# and the build warns if the achieved figure leaves the band.
+NAMES_ROW_GROUP_ROWS = 12800
+NAMES_ROW_GROUP_TARGET_KIB = (700, 900)
 
 
 def staged_source() -> Path:
@@ -313,6 +495,7 @@ def stream_write(
     transform=None,
     sorting_columns=None,
     compression_level: int = ZSTD_LEVEL,
+    statistics_columns=None,
 ):
     """Rewrite a Parquet file with exact row groups, a batch at a time.
 
@@ -324,8 +507,18 @@ def stream_write(
 
     `batch_rows` is rounded down to a multiple of `row_group_rows`, so every
     group written is exactly full and a row number alone tells a consumer
-    which group a row is in. That is what makes the search index's
+    which group a row is in. That is what makes the gazetteer index's
     `geometry_ref` a single range read.
+
+    `statistics_columns`, when given, restricts min/max statistics to those
+    columns. The footer carries one thrift record per column per row group, and
+    a range-request client reads the whole footer before it can read anything,
+    so statistics on a column nobody prunes on are pure first-keystroke cost.
+    Measured on the gazetteer index: statistics on all 21 columns made the
+    footer 4,541,351 bytes; restricting them to the four a client prunes on
+    cut it by most of that. Leaving it None keeps statistics on everything,
+    which is right for a boundary file small enough that the footer does not
+    matter.
     """
     import pyarrow as pa
     import pyarrow.parquet as pq
@@ -348,7 +541,10 @@ def stream_write(
                     table.schema.with_metadata(footer_meta),
                     compression="zstd",
                     compression_level=compression_level,
-                    write_statistics=True,
+                    write_statistics=(
+                        True if statistics_columns is None
+                        else list(statistics_columns)
+                    ),
                     write_page_index=True,
                     version="2.6",
                     sorting_columns=sorting_columns,
@@ -446,13 +642,29 @@ _KEEP = re.compile(r"[^\w\s'-]", re.UNICODE)
 _UNDERSCORE = re.compile(r"_")
 _WS = re.compile(r"\s+")
 
+# Every Unicode mark category, not just the non-spacing one. This matters, and
+# it is subtle: `unicodedata.combining()` returns a canonical combining class,
+# which is 0 for a *spacing* mark (category Mc) such as the Bengali vowel sign
+# U+09BF. Stripping only what `combining()` flags leaves those marks in place,
+# and they are not `\w`, so the next step turns each of them into a space --
+# folding "কিয়োতো প্রশাসনিক অঞ্চল" to "ক য ত পরশ সন ক অঞচল", with the word
+# broken into pieces.
+#
+# A JavaScript client implementing the contract's "strip combining marks" with
+# `/\p{M}/gu` strips Mc as well, folds the same name to "কযত পরশসনক অঞচল", and
+# then its keystrokes never match this column. The contract says `\p{M}`, so
+# that is what this does: Mn, Mc and Me all go.
+_MARKS = {"Mn", "Mc", "Me"}
+
 
 def normalize_name(name: str | None) -> str | None:
     """Fold a display name to the index's sort key."""
     if name is None:
         return None
     decomposed = unicodedata.normalize("NFD", name)
-    stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
+    stripped = "".join(
+        c for c in decomposed if unicodedata.category(c) not in _MARKS
+    )
     # \w includes the underscore, which is not in the declared alphabet.
     cleaned = _UNDERSCORE.sub(" ", _KEEP.sub(" ", stripped))
     folded = _WS.sub(" ", cleaned).strip().lower()
@@ -600,6 +812,25 @@ def connect(*, memory_limit: str = "12GB", threads: int | None = None):
         con.execute(f"SET threads={threads};")
     con.execute("SET enable_progress_bar=false;")
     return con
+
+
+def geom_expr(con, path: Path, *, column: str = "geometry", alias: str = "") -> str:
+    """A SQL expression that is a DuckDB GEOMETRY, whatever the file holds.
+
+    DuckDB's spatial extension reads the GeoParquet `geo` metadata and hands
+    back a typed `GEOMETRY` column when it recognizes it, and a plain `BLOB`
+    when it does not -- and which of the two happens depends on the writer, the
+    DuckDB version and the metadata's CRS key. Wrapping a `GEOMETRY` in
+    `ST_GeomFromWKB` is a binder error and not wrapping a `BLOB` is another
+    one, so the only safe thing is to ask the file.
+    """
+    prefix = f"{alias}." if alias else ""
+    kind = con.execute(
+        f"SELECT typeof({column}) FROM read_parquet('{path.as_posix()}') LIMIT 1"
+    ).fetchone()[0]
+    if kind.upper().startswith("GEOMETRY"):
+        return f"{prefix}{column}"
+    return f"ST_GeomFromWKB({prefix}{column})"
 
 
 def copy_ordered(con, sql: str, out: Path, *, level: int = 3) -> None:

@@ -1,0 +1,46 @@
+{
+  "version": 8,
+  "name": "Placetype",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../neighbourhood.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "neighbourhood-fill",
+      "type": "fill",
+      "source": "data",
+      "source-layer": "neighbourhood",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "placetype"
+          ],
+          "neighbourhood",
+          "#4747a0",
+          "microhood",
+          "#9898dd",
+          "macrohood",
+          "#eaeafa",
+          "#cfcfcf"
+        ],
+        "fill-opacity": 0.85,
+        "fill-outline-color": "rgba(40,40,40,0.35)"
+      }
+    },
+    {
+      "id": "neighbourhood-line",
+      "type": "line",
+      "source": "data",
+      "source-layer": "neighbourhood",
+      "paint": {
+        "line-color": "rgba(30,30,30,0.55)",
+        "line-width": 0.4
+      }
+    }
+  ]
+}

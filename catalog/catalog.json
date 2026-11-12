@@ -4,14 +4,35 @@
   "stac_extensions": [
     "https://schemas.portolan-sdi.org/portolan/v0.2.0/schema.json"
   ],
-  "id": "example-catalog",
-  "title": "Example Catalog",
-  "description": "TODO(setup): one or two sentences saying what this catalog holds, who produced the data, and who it is for. A person and an agent both read this first.",
+  "id": "whosonfirst",
+  "title": "Who's On First: a Cloud-Native Gazetteer",
+  "description": "[Who's On First](https://whosonfirst.org/) is an open gazetteer: millions of named administrative places, from countries down to the microhoods inside neighbourhoods, each with a stable identifier, a placetype, a hierarchy, names in many languages, and — unusually — a record of which source its geometry came from. This catalog describes it as [geocode.earth](https://geocode.earth/data/whosonfirst/combined/) distributes it, and makes it usable from a browser.\n\n**This is place-name and boundary lookup, not address geocoding.** Who's On First's administrative distribution holds no street and no house number.\n\n**A metadata-first catalog.** geocode.earth's own files are already cloud-native — GeoParquet 1.1 with a `covering` bbox, served over HTTPS with range requests and `Access-Control-Allow-Origin: *` — so this catalog links straight to them rather than copying 5.5 GB to say the same thing twice. Every collection carries them as assets, with the size and digest geocode.earth's own inventory records.\n\nWhat it builds is only what a measurement says those files cannot do. The upstream GeoParquet has 83 row groups of 65,536 rows, no declared sort and 89% of its bytes in one column, so fetching a single place's geometry costs a median of 38 MiB and as much as 285 MiB. The upstream PMTiles archive is built with `--no-tile-size-limit`, and its whole-world tile is 15,671,392 bytes. And nothing upstream answers \"what places are called something like *this*\". So this catalog adds one GeoParquet per administrative level with small row groups, a display-simplified companion for the four polygon-heavy levels, capped vector tiles, and a name index sorted for prefix search. Every number behind those decisions is in [changes-from-upstream.md](changes-from-upstream.md), and every built file's asset description says when to read it instead of the upstream one.\n\n**The license is a mix, and this catalog does not pretend otherwise.** Who's On First scopes CC0 to \"the format and structure that allows Who's On First to operate\" — the schema, not the records — and the records inherit terms from over 300 sources. Measured on the distribution's own `geom_src` column, 70.88% of the geometry is GeoNames under CC BY and 14 records of 5,423,663 are share-alike. Attribution is required: *Data from Who's On First. [License](https://whosonfirst.org/docs/licenses/).*\n\nThis is a mirror. [Who's On First](https://whosonfirst.org/) produces the data and geocode.earth builds the distribution. Read the [agent guide](AGENTS.md) before you query it.",
+  "keywords": [
+    "gazetteer",
+    "place names",
+    "administrative boundaries",
+    "Who's On First",
+    "WOF",
+    "geocode.earth",
+    "multilingual",
+    "localities",
+    "neighbourhoods",
+    "GeoParquet",
+    "PMTiles"
+  ],
+  "updated": "2026-11-12T00:00:00Z",
   "links": [
+    {
+      "rel": "self",
+      "href": "https://data.source.coop/portolan-mirrors/whosonfirst-catalog/catalog.json",
+      "type": "application/json",
+      "title": "Who's On First: a Cloud-Native Gazetteer"
+    },
     {
       "rel": "root",
       "href": "./catalog.json",
-      "type": "application/json"
+      "type": "application/json",
+      "title": "Who's On First: a Cloud-Native Gazetteer"
     },
     {
       "rel": "describedby",
@@ -27,13 +48,125 @@
     },
     {
       "rel": "vcs",
-      "href": "https://github.com/TODO(setup)",
+      "href": "https://github.com/portolan-mirrors/whosonfirst-catalog",
       "title": "Source repository"
     },
     {
       "rel": "issues",
-      "href": "https://github.com/TODO(setup)/issues",
+      "href": "https://github.com/portolan-mirrors/whosonfirst-catalog/issues",
       "title": "Issue tracker"
+    },
+    {
+      "rel": "via",
+      "href": "https://geocode.earth/data/whosonfirst/combined/",
+      "type": "text/html",
+      "title": "geocode.earth combined Who's On First downloads (upstream source)"
+    },
+    {
+      "rel": "cite-as",
+      "href": "https://whosonfirst.org/",
+      "type": "text/html",
+      "title": "Who's On First"
+    },
+    {
+      "rel": "license",
+      "href": "https://whosonfirst.org/docs/licenses/",
+      "type": "text/html",
+      "title": "Who's On First data licenses, source by source"
+    },
+    {
+      "rel": "license",
+      "href": "https://github.com/whosonfirst-data/whosonfirst-data/blob/master/LICENSE.md",
+      "type": "text/html",
+      "title": "Who's On First LICENSE.md"
+    },
+    {
+      "rel": "describedby",
+      "href": "https://github.com/whosonfirst/whosonfirst-placetypes",
+      "type": "text/html",
+      "title": "Who's On First placetypes, the project's own definitions"
+    },
+    {
+      "rel": "related",
+      "href": "https://source.coop/portolan-mirrors/geoboundaries-catalog",
+      "type": "text/html",
+      "title": "geoBoundaries CGAZ, a CC-BY-4.0 sibling gazetteer catalog"
+    },
+    {
+      "rel": "related",
+      "href": "https://source.coop/portolan-mirrors/cn-gazetteer-overture",
+      "type": "text/html",
+      "title": "Overture divisions, an ODbL sibling gazetteer catalog"
+    },
+    {
+      "rel": "child",
+      "href": "./country/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Countries, Dependencies and Disputed Areas"
+    },
+    {
+      "rel": "child",
+      "href": "./region/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Regions and Macroregions"
+    },
+    {
+      "rel": "child",
+      "href": "./county/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Counties and Macrocounties"
+    },
+    {
+      "rel": "child",
+      "href": "./localadmin/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Local Administrative Units"
+    },
+    {
+      "rel": "child",
+      "href": "./locality/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Localities and Boroughs"
+    },
+    {
+      "rel": "child",
+      "href": "./neighbourhood/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Neighbourhoods, Macrohoods and Microhoods"
+    },
+    {
+      "rel": "child",
+      "href": "./names/collection.json",
+      "type": "application/json",
+      "title": "Who's On First Gazetteer Name Index"
+    }
+  ],
+  "providers": [
+    {
+      "name": "Who's On First",
+      "description": "Produces the gazetteer. A community project, originally from Mapzen, that assembles place records from over 300 open data sources with a stable numeric identifier, a placetype hierarchy and names in hundreds of languages, and publishes the per-record geometry provenance that makes its licensing checkable.",
+      "roles": [
+        "producer",
+        "licensor"
+      ],
+      "url": "https://whosonfirst.org/"
+    },
+    {
+      "name": "geocode.earth",
+      "description": "Builds and hosts the distributions. Who's On First lives as 260 GitHub repositories of GeoJSON; geocode.earth compiles them into combined GeoParquet, SQLite, SpatiaLite, GeoJSON-bundle and PMTiles files and serves them over HTTPS with range requests and permissive CORS, which is what makes this a metadata-first catalog rather than a copy. whosonfirst.org's own download page points here. (The Portolan `host` role names the organization serving *this catalog's* files, so it sits on Portolan Mirrors; geocode.earth hosts the upstream assets linked from every collection.)",
+      "roles": [
+        "processor"
+      ],
+      "url": "https://geocode.earth/data/whosonfirst/combined/"
+    },
+    {
+      "name": "Portolan Mirrors",
+      "description": "Describes geocode.earth's distribution as a Portolan catalog and adds the three things a browser client cannot get from it: one GeoParquet per administrative level with small row groups, a display-simplified companion for the polygon-heavy levels, and a name index sorted for prefix search. Links to the upstream files rather than copying them wherever they already do the job. Adds no places and changes no attribute value.",
+      "roles": [
+        "processor",
+        "host"
+      ],
+      "url": "https://github.com/portolan-mirrors/whosonfirst-catalog"
     }
   ]
 }

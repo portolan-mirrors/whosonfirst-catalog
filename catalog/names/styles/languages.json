@@ -1,0 +1,58 @@
+{
+  "version": 8,
+  "name": "Languages agreeing on this spelling",
+  "sources": {
+    "data": {
+      "type": "vector",
+      "url": "pmtiles://../names.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "names-circle",
+      "type": "circle",
+      "source": "data",
+      "source-layer": "names",
+      "paint": {
+        "circle-color": [
+          "step",
+          [
+            "coalesce",
+            [
+              "get",
+              "name_lang_count"
+            ],
+            0
+          ],
+          "#f4c9b5",
+          2,
+          "#e59b78",
+          4,
+          "#cb6f47",
+          8,
+          "#9f4a26",
+          16,
+          "#68290e"
+        ],
+        "circle-radius": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          0,
+          1.1,
+          4,
+          2.6,
+          8,
+          5.0
+        ],
+        "circle-opacity": 0.85,
+        "circle-stroke-width": 0.3,
+        "circle-stroke-color": "rgba(30,30,30,0.5)"
+      }
+    }
+  ]
+}
