@@ -145,7 +145,7 @@ def main() -> int:
         print("catalog.publish.yaml still carries template values:")
         for value in stale:
             print(f"  {value}")
-        print("\nEdit write_prefix and public_base, then see SETUP.md.")
+        print("\nEdit write_prefix and public_base in catalog.publish.yaml.")
         return 1
 
     bucket, prefix = split_s3_uri(config["write_prefix"])
@@ -185,7 +185,9 @@ def main() -> int:
     except Exception as exc:  # noqa: BLE001 - stop before any upload
         sys.exit(f"cannot build an AWS session: {exc}")
 
-    failed = upload_all(session, bucket, changed)
+    failed = upload_all(
+        session, bucket, changed, config.get("endpoint_url") or None
+    )
     if failed:
         print(f"\n{len(failed)} of {len(changed)} file(s) failed:",
               file=sys.stderr)
