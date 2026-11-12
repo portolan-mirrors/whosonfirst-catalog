@@ -17,7 +17,7 @@ the point.
 geocode.earth's combined Who's On First GeoParquet is already cloud-native:
 GeoParquet 1.1 with a `covering` bbox, spatially clustered, served over HTTPS
 with range requests and `Access-Control-Allow-Origin: *`. A planet-wide
-aggregate over it takes seconds. Copying 5.5 GB would produce a staler
+aggregate over it takes seconds. Copying 5.5 GiB would produce a staler
 duplicate of a file that already works.
 
 So every collection links straight to geocode.earth's files, with the size and
@@ -55,11 +55,11 @@ outside it ever is. `tools/publish.py` has no flag that widens that.
 ## Build
 
 The pipeline needs DuckDB with `spatial`, PyArrow, pycountry, GDAL's
-`ogr2ogr`, `tippecanoe` and the `pmtiles` CLI. It stages about 10 GB in
+`ogr2ogr`, `tippecanoe` and the `pmtiles` CLI. It stages about 10 GiB in
 `../whosonfirst-staging`, outside the repository.
 
 ```bash
-python3 tools/fetch_sources.py       # 5.5 GB from geocode.earth, verified
+python3 tools/fetch_sources.py       # 5.5 GiB from geocode.earth, verified
 python3 tools/measure_upstream.py    # -> docs/upstream-measurements.md
 python3 tools/build_boundaries.py    # -> 6 GeoParquet files, ~18 min
 python3 tools/build_display.py       # -> 4 display companions, ~3 min
@@ -115,6 +115,37 @@ Publishing goes through the `data.source.coop` gateway with the publisher's
 own Source Cooperative credentials, which is what `endpoint_url` in
 `catalog.publish.yaml` selects. CI with an approved IAM role would write to
 the real bucket with no `endpoint_url` — same bytes, different door.
+
+### Nothing has been published yet
+
+The Source Cooperative repository does not exist, so neither script has been
+run with `--confirm`. What is left, in order:
+
+1. **Create the repository** `portolan-mirrors/whosonfirst-catalog` on
+   [Source Cooperative](https://source.coop/), under the `portolan-mirrors`
+   organization. Its title and description should match
+   `catalog/catalog.json`; the license there is "other", with the two links
+   in [`docs/licensing.md`](docs/licensing.md).
+2. **Authenticate**: `source-coop login`, which writes the `source-coop`
+   profile `catalog.publish.yaml` names.
+3. **Upload the data first**, so no published metadata points at a missing
+   file: `python3 tools/upload_data.py` to see the plan, then
+   `--confirm`. About 7 GiB over 20 objects — six boundary GeoParquet files
+   (3.3 GB), four display companions (0.4 GB), the index (0.6 GB) and seven
+   PMTiles archives (1.2 GB).
+4. **Then publish the metadata**: `python3 tools/publish.py`, then
+   `--confirm`.
+5. **Re-check against the live host**: `portolan check --live` from
+   `catalog/`, which probes for HTTP Range support and CORS headers on the
+   published objects. It will also probe the geocode.earth hrefs unless given
+   a base URL, so pass `--url` to keep the report about this catalog's own
+   host. The upstream host's own range and CORS behaviour is already recorded
+   in [`docs/upstream-measurements.md`](docs/upstream-measurements.md).
+6. **Register the catalog** in the Portolan registry.
+
+Both scripts refuse to upload while `catalog.publish.yaml` still carries a
+sentinel value, and they check before making any AWS call, so steps 3 and 4
+can be rehearsed without credentials.
 
 ## License
 

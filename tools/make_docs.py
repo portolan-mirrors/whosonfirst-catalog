@@ -191,7 +191,7 @@ def boundary_readme(con, collection: str, facts: dict) -> str:
         f"{human(facts['group_bytes'])} per range request |",
         "| To scan the whole planet, or all 21 placetypes at once | "
         f"[geocode.earth's combined GeoParquet]({UPSTREAM_PARQUET}) | One "
-        "file, spatially clustered, 5.5 GB |",
+        "file, spatially clustered, 5.5 GiB |",
         "| The full hierarchy, every language, or the temporal fields | "
         f"[geocode.earth's SQLite distribution]({UPSTREAM_SQLITE}) | The "
         "GeoParquet build does not carry them |",
@@ -485,7 +485,7 @@ def boundary_agents(con, collection: str, facts: dict) -> str:
         )
     lines += [
         f"- [geocode.earth's combined GeoParquet]({UPSTREAM_PARQUET}) — "
-        "5.5 GB, all 21 placetypes, spatially clustered. Read this for a "
+        "5.5 GiB, all 21 placetypes, spatially clustered. Read this for a "
         "planet-wide scan or a spatial query; **do not** read it to fetch one "
         "place, because its geometry chunks are a median of 38 MiB and up to "
         "285 MiB per row group **[derived]**.",

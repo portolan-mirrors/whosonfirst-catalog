@@ -223,6 +223,54 @@ def upstream_assets() -> dict:
     return out
 
 
+# Who's On First's own files, copied into the catalog on 2026-11-12 and
+# served beside it. They are small, they are the evidence behind this
+# catalog's licensing and placetype claims, and unlike the upstream data files
+# they are worth pinning: a reader checking whether `geom_src = 'geonames'`
+# really means CC BY should not have to trust this catalog's summary of a file
+# they can read here.
+CARRIED = {
+    "whosonfirst-license": (
+        "whosonfirst/LICENSE.md", "text/markdown",
+        "Who's On First LICENSE.md, verbatim",
+        "The project's own license statement, copied on 2026-11-12. It is "
+        "the source of this catalog's `license: other`: CC0 is scoped to "
+        "\"the format and structure that allows Who's On First to operate\", "
+        "and the records inherit terms from their sources.",
+    ),
+    "whosonfirst-sources": (
+        "whosonfirst/sources-spec-latest.json", "application/json",
+        "whosonfirst-sources: 182 source records with per-source licensing",
+        "The table `geom_src` resolves against. Each record carries "
+        "`license`, `license_type` and the `usage_geometry`, "
+        "`usage_property` and `usage_concordance` flags that say what the "
+        "source was actually used for. This is what makes a specific "
+        "feature's license a fact rather than an average.",
+    ),
+    "whosonfirst-placetypes": (
+        "whosonfirst/placetypes-spec-latest.json", "application/json",
+        "whosonfirst-placetypes: the canonical 35 placetypes and their parents",
+        "The machine-readable placetype spec, copied on 2026-11-12. It is "
+        "more current than the project's own website page, and it is what "
+        "this catalog's level mapping was built against.",
+    ),
+}
+
+
+def carried_assets() -> dict:
+    out = {}
+    for key, (rel, media, title, description) in CARRIED.items():
+        path = CATALOG / "_assets" / rel
+        if not path.exists():
+            continue
+        out[key] = file_asset(
+            path, f"../_assets/{rel}",
+            type=media, title=title, roles=["metadata", "source"],
+            description=description,
+        )
+    return out
+
+
 def style_assets(collection: str) -> dict:
     out = {}
     folder = CATALOG / collection / "styles"
@@ -480,6 +528,7 @@ def boundary_collection(collection: str) -> dict:
         )
 
     assets.update(upstream_assets())
+    assets.update(carried_assets())
     assets.update(style_assets(collection))
     assets.update(thumbnail_asset(collection, title))
 
@@ -577,6 +626,7 @@ def names_collection() -> dict:
             **{"pmtiles:layers": ["names"]},
         )
     assets.update(upstream_assets())
+    assets.update(carried_assets())
     assets.update(style_assets("names"))
     assets.update(thumbnail_asset("names", title))
 

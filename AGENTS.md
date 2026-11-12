@@ -61,14 +61,23 @@ These files under `catalog/` are generated and will be overwritten:
 |---|---|
 | `catalog/*/collection.json` | `tools/make_collections.py` |
 | `catalog/*/styles/*.json` | `tools/make_styles.py` |
-| `catalog/*/README.md` | `tools/make_readmes.py` |
-| `catalog/*/AGENTS.md` | `tools/make_agents.py` |
+| `catalog/*/README.md` | `tools/make_docs.py` |
+| `catalog/*/AGENTS.md` | `tools/make_docs.py` |
+| `catalog/*/*.thumb.png` | `tools/make_thumbnails.py` |
 | `catalog/names/index.json` | `tools/build_names.py` |
 | `docs/upstream-measurements.md` | `tools/measure_upstream.py` |
-| `docs/index-measurements.md` | `tools/measure_index.py` |
+| `docs/index-measurements.md`, `.json` | `tools/measure_index.py` |
 
 `catalog/catalog.json`, `catalog/README.md`, `catalog/AGENTS.md`,
-`catalog/llms.txt` and `catalog/changes-from-upstream.md` are written by hand.
+`catalog/llms.txt` and `catalog/changes-from-upstream.md` are written by hand,
+as are the files under `catalog/_assets/`, which are Who's On First's own
+copied verbatim.
+
+Two modules exist so a fact has one home. `tools/columns.py` holds every
+published column description with its provenance tag, read by both the
+collection generator and the documentation generator. `tools/wofcommon.py`
+holds the placetype-to-level mapping, the layout targets, the licensing
+blocks and the `geom_src` grouping — nothing may restate any of them.
 
 ### The conformance allow-list
 

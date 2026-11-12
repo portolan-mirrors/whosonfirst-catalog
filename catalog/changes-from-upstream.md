@@ -163,10 +163,14 @@ groups of 65,536 rows, no declared sort order in any of them, and 89% of its
 
 | | compressed geometry chunk |
 |---|---|
-| minimum | 1.0 MiB |
-| median | 38.4 MiB |
-| 95th percentile | 196.3 MiB |
-| maximum | 284.6 MiB |
+| minimum | 979.1 KB |
+| median | 38.4 MB |
+| 95th percentile | 168.9 MB |
+| maximum | 284.6 MB |
+
+(From `docs/upstream-measurements.md` in the
+[source repository](https://github.com/portolan-mirrors/whosonfirst-catalog),
+which `tools/measure_upstream.py` regenerates.)
 
 Every Parquet reader is row-group-granular, so that is what decoding one row
 costs. `placetype` statistics span most of the placetype alphabet in most row

@@ -936,8 +936,14 @@ def footer_metadata(extra: dict[str, str] | None = None) -> dict[bytes, bytes]:
 
 
 def human(n: float) -> str:
-    for unit in ("B", "KB", "MB", "GB"):
-        if n < 1024 or unit == "GB":
+    """Binary units, with binary names.
+
+    Dividing by 1024 and calling the result "MB" overstates a gigabyte-scale
+    file by 7%, and this catalog quotes sizes in prose that a reader may
+    check against `ls`. So the divisor and the suffix agree.
+    """
+    for unit in ("B", "KiB", "MiB", "GiB"):
+        if n < 1024 or unit == "GiB":
             return f"{n:.1f} {unit}" if unit != "B" else f"{n:.0f} B"
         n /= 1024.0
-    return f"{n:.1f} GB"
+    return f"{n:.1f} GiB"

@@ -193,7 +193,7 @@ def render(name: str) -> None:
 
     west, south, east, north = frame(None, spec["window"], spec["aspect"])
     # The GeoParquet carries a `covering` bbox, so geopandas prunes row groups
-    # spatially instead of reading 1.5 GB to draw one region. That is the same
+    # spatially instead of reading 1.4 GiB to draw one region. That is the same
     # property this catalog's files exist to give a browser.
     try:
         gdf = gpd.read_parquet(

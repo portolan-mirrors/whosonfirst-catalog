@@ -47,6 +47,25 @@ Then add the rule id to ACCEPTED in tests/test_conformance.py. Both, or
 neither.
 -->
 
+## Accepted warnings
+
+A warning does not fail the gate, so these are recorded here rather than in
+`ACCEPTED`. They are deliberate, and a future reader should not "fix" them.
+
+### PTL-AST-003 on `upstream-inventory` and `upstream-members`
+
+`portolan check` warns that these two assets carry no `file:size` and no
+`file:checksum`. They are geocode.earth's own live index: the inventory gains
+an entry every time a country is rebuilt, and the members manifest changes
+with it. Pinning a digest to a file whose whole job is to change would be a
+promise this catalog cannot keep, and a reader comparing against a stale
+digest would conclude the file was corrupt.
+
+Every other upstream asset — the GeoParquet, the PMTiles, the SQLite, the
+SpatiaLite and the GeoJSON bundle — does carry both, taken from that same
+inventory, because those files are rebuilt under a new entry rather than
+amended in place.
+
 ## Validator workarounds
 
 ### stac-check reports a dialect crash on every collection

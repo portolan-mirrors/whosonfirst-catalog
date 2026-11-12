@@ -197,7 +197,7 @@ macrohood        1228
 
 The PMTiles archives are for drawing, one per level plus one for the index
 points. The GeoParquet files are for querying. Do not download a GeoParquet
-file to draw a map: the locality file is 1.5 GB and its PMTiles archive is a
+file to draw a map: the locality file is 1.4 GiB and its PMTiles archive is a
 fraction of that.
 
 ## How this catalog was built
@@ -207,7 +207,7 @@ Ten scripts in the
 each runnable on its own:
 
 ```bash
-python3 tools/fetch_sources.py       # 5.5 GB from geocode.earth, verified
+python3 tools/fetch_sources.py       # 5.5 GiB from geocode.earth, verified
 python3 tools/measure_upstream.py    # -> docs/upstream-measurements.md
 python3 tools/build_boundaries.py    # -> 6 GeoParquet files
 python3 tools/build_display.py       # -> 4 display companions
