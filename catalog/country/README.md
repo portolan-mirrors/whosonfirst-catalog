@@ -26,10 +26,10 @@ distribution, so this is not address geocoding.
 
 | you want | read | why |
 |---|---|---|
-| To draw an outline, now | `wof_country_display.parquet` | Simplified, 5.1 MB against 61.5 MB |
+| To draw an outline, now | `wof_country_display.parquet` | Simplified, 5.1 MiB against 61.6 MiB |
 | To draw many at once | `country.pmtiles` | Tiled, capped at 400 KB per tile |
-| To clip, measure, export or analyse one place | `wof_country.parquet` | The real geometry, 708.1 KB per range request |
-| To scan the whole planet, or all 21 placetypes at once | [geocode.earth's combined GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet) | One file, spatially clustered, 5.5 GB |
+| To clip, measure, export or analyse one place | `wof_country.parquet` | The real geometry, 708.2 KiB per range request |
+| To scan the whole planet, or all 21 placetypes at once | [geocode.earth's combined GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet) | One file, spatially clustered, 5.5 GiB |
 | The full hierarchy, every language, or the temporal fields | [geocode.earth's SQLite distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2) | The GeoParquet build does not carry them |
 
 ### Why this catalog has its own GeoParquet at all
@@ -49,14 +49,14 @@ decoding a single row. `placetype` statistics span most of the alphabet in most
 row groups, so filtering to this level prunes nothing either.
 
 This file is the same 353 places sorted by `(country, wof_id)` with the sort
-declared, in 89 exactly-full row groups of 4 — 708.1 KB each.
+declared, in 89 exactly-full row groups of 4 — 708.2 KiB each.
 
 ## Files
 
 ```
-country/wof_country.parquet  61.5 MB, 353 rows, 89 row groups of 4
-country/wof_country_display.parquet  5.1 MB (8.3% of the full file)
-country/country.pmtiles  2.3 MB, layer "country"
+country/wof_country.parquet  61.6 MiB, 353 rows, 89 row groups of 4
+country/wof_country_display.parquet  5.1 MiB (8.3% of the full file)
+country/country.pmtiles  2.3 MiB, layer "country"
 ```
 
 ### The display file is outward-biased, and that matters
@@ -113,12 +113,13 @@ Every column, with its provenance tag and full description, is in
 | `concordance_keys` | string | **One** concordance key, not the set |
 | `concordance_ids` | string | The identifier belonging to `concordance_keys` |
 | `geom_src` | string | **The provenance and licensing key, and the most important column here.** WOF documents `src:geom` as "The data source of a record's geometry |
-| `area_km2` | double | Geodesic area in square kilometres, from DuckDB's `ST_Area_Spheroid` |
-| `perimeter_km` | double | Geodesic perimeter in kilometres, from `ST_Perimeter_Spheroid` |
+| `area_km2` | double | Geodesic area in square kilometres, from pyproj's `Geod`, which is GeographicLib |
+| `perimeter_km` | double | Geodesic perimeter in kilometres, from the same pyproj `Geod` call |
 | `vertices` | int32 | Coordinates in the geometry, from `ST_NPoints` |
 | `geometry_repaired` | boolean | True where the upstream geometry failed `ST_IsValid` and this build rebuilt it with `ST_MakeValid` and `ST_CollectionExtract(..., 3)` |
+| `geometry_flattened` | boolean | True where the upstream geometry carried a Z coordinate and this build dropped it with `ST_Force2D` |
 | `bbox` | struct | The feature's bounding box in EPSG:4326 degrees, as four doubles declared in the GeoParquet 1.1 `covering` metadata, so a reader can prune row groups spatially without decoding any geometry |
-| `geometry` | byte_array | WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags |
+| `geometry` | byte_array | WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags and the 2 rows `geometry_flattened` flags |
 
 ## What this collection measures
 
@@ -140,9 +141,9 @@ Where the outlines came from, by WOF's own `geom_src`:
 | `naturalearth` | 10 |
 | `mz` | 5 |
 | `us-dshiu` | 3 |
-| `pl-gugik` | 1 |
 | `esp-cnig` | 1 |
 | `de-bkg` | 1 |
+| `pl-gugik` | 1 |
 
 That column is the licensing key as well as the provenance one. Join it to
 [sources-spec-latest.json](https://github.com/whosonfirst/whosonfirst-sources)
@@ -200,16 +201,16 @@ FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/country/wof_
 ORDER BY area_km2 DESC LIMIT 10;
 ```
 ```
-Myanmar  MMR  country  nan
-Antarctica  ATA  country  nan
-Norfolk Island  AUS  dependency  nan
-Mexico  MEX  country  nan
-Marshall Islands  MHL  country  nan
-Bhutan  BTN  country  nan
-Canada  CAN  country  nan
-Wallis and Futuna  FRA  dependency  nan
-French Polynesia  FRA  dependency  nan
-Clipperton Island  FRA  dependency  nan
+Russia  RUS  country  16,975,473
+Antarctica  ATA  country  12,358,174
+Canada  CAN  country  9,875,450
+United States  USA  country  9,833,548
+China  CHN  country  9,377,064
+Brazil  BRA  country  8,479,492
+Australia  AUS  country  7,690,962
+India  IND  country  3,155,502
+Argentina  ARG  country  2,779,517
+Kazakhstan  KAZ  country  2,726,508
 ```
 
 The country sort is what makes a country filter cheap: it prunes row groups
@@ -222,8 +223,8 @@ WHERE country = 'NLD'
 ORDER BY area_km2 DESC LIMIT 5;
 ```
 ```
-Netherlands  country  66849.1
-Caribbean Netherlands  dependency  126.3
+Netherlands  country  41398.3
+Caribbean Netherlands  dependency  321.0
 ```
 
 Which sources the outlines came from, which is also which licenses apply:

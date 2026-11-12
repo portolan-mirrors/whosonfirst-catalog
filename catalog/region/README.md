@@ -26,10 +26,10 @@ distribution, so this is not address geocoding.
 
 | you want | read | why |
 |---|---|---|
-| To draw an outline, now | `wof_region_display.parquet` | Simplified, 21.8 MB against 212.1 MB |
+| To draw an outline, now | `wof_region_display.parquet` | Simplified, 21.8 MiB against 212.1 MiB |
 | To draw many at once | `region.pmtiles` | Tiled, capped at 400 KB per tile |
-| To clip, measure, export or analyse one place | `wof_region.parquet` | The real geometry, 795.4 KB per range request |
-| To scan the whole planet, or all 21 placetypes at once | [geocode.earth's combined GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet) | One file, spatially clustered, 5.5 GB |
+| To clip, measure, export or analyse one place | `wof_region.parquet` | The real geometry, 795.7 KiB per range request |
+| To scan the whole planet, or all 21 placetypes at once | [geocode.earth's combined GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet) | One file, spatially clustered, 5.5 GiB |
 | The full hierarchy, every language, or the temporal fields | [geocode.earth's SQLite distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2) | The GeoParquet build does not carry them |
 
 ### Why this catalog has its own GeoParquet at all
@@ -49,14 +49,14 @@ decoding a single row. `placetype` statistics span most of the alphabet in most
 row groups, so filtering to this level prunes nothing either.
 
 This file is the same 4,362 places sorted by `(country, wof_id)` with the sort
-declared, in 273 exactly-full row groups of 16 — 795.4 KB each.
+declared, in 273 exactly-full row groups of 16 — 795.7 KiB each.
 
 ## Files
 
 ```
-region/wof_region.parquet  212.1 MB, 4,362 rows, 273 row groups of 16
-region/wof_region_display.parquet  21.8 MB (10.3% of the full file)
-region/region.pmtiles  17.1 MB, layer "region"
+region/wof_region.parquet  212.1 MiB, 4,362 rows, 273 row groups of 16
+region/wof_region_display.parquet  21.8 MiB (10.3% of the full file)
+region/region.pmtiles  17.3 MiB, layer "region"
 ```
 
 ### The display file is outward-biased, and that matters
@@ -113,12 +113,13 @@ Every column, with its provenance tag and full description, is in
 | `concordance_keys` | string | **One** concordance key, not the set |
 | `concordance_ids` | string | The identifier belonging to `concordance_keys` |
 | `geom_src` | string | **The provenance and licensing key, and the most important column here.** WOF documents `src:geom` as "The data source of a record's geometry |
-| `area_km2` | double | Geodesic area in square kilometres, from DuckDB's `ST_Area_Spheroid` |
-| `perimeter_km` | double | Geodesic perimeter in kilometres, from `ST_Perimeter_Spheroid` |
+| `area_km2` | double | Geodesic area in square kilometres, from pyproj's `Geod`, which is GeographicLib |
+| `perimeter_km` | double | Geodesic perimeter in kilometres, from the same pyproj `Geod` call |
 | `vertices` | int32 | Coordinates in the geometry, from `ST_NPoints` |
 | `geometry_repaired` | boolean | True where the upstream geometry failed `ST_IsValid` and this build rebuilt it with `ST_MakeValid` and `ST_CollectionExtract(..., 3)` |
+| `geometry_flattened` | boolean | True where the upstream geometry carried a Z coordinate and this build dropped it with `ST_Force2D` |
 | `bbox` | struct | The feature's bounding box in EPSG:4326 degrees, as four doubles declared in the GeoParquet 1.1 `covering` metadata, so a reader can prune row groups spatially without decoding any geometry |
-| `geometry` | byte_array | WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags |
+| `geometry` | byte_array | WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags and the 2 rows `geometry_flattened` flags |
 
 ## What this collection measures
 
@@ -199,16 +200,16 @@ FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/region/wof_r
 ORDER BY area_km2 DESC LIMIT 10;
 ```
 ```
-Christmas Island  AUS  region  nan
-Western Australia  AUS  region  nan
-Queensland  AUS  region  nan
-Australian Capital Territory  AUS  region  nan
-Victoria  AUS  region  nan
-South Australia  AUS  region  nan
-Northern Territory  AUS  region  nan
-New South Wales  AUS  region  nan
-Tasmania  AUS  region  nan
-Punakha  BTN  region  nan
+North  BRA  macroregion  3,853,677
+Sakha  RUS  region  3,072,818
+Western Australia  AUS  region  2,528,380
+Krasnoyarsk  RUS  region  2,328,183
+Nunavut  CAN  region  2,092,905
+Queensland  AUS  region  1,730,083
+Alaska  USA  region  1,723,336
+Xinjiang Uyghur  CHN  region  1,636,056
+Northwest Territories  CAN  region  1,615,685
+Central-West  BRA  macroregion  1,606,404
 ```
 
 The country sort is what makes a country filter cheap: it prunes row groups
@@ -221,11 +222,11 @@ WHERE country = 'NLD'
 ORDER BY area_km2 DESC LIMIT 5;
 ```
 ```
-Friesland  region  9463.4
-Gelderland  region  8240.0
-North Brabant  region  8078.9
-North Holland  region  6669.6
-Overijssel  region  5529.2
+Friesland  region  5751.4
+Gelderland  region  5135.4
+North Brabant  region  5084.3
+North Holland  region  4094.3
+Overijssel  region  3419.8
 ```
 
 Which sources the outlines came from, which is also which licenses apply:

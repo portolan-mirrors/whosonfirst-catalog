@@ -46,16 +46,16 @@ INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
 Every file is readable in place over HTTPS range requests. No credentials, no
 API, no server.
 
-- `wof_locality.parquet` — 1.4 GB, 4,796,292 rows, 2,342 row groups of 2048
-  (641.9 KB each), sorted by `(country, wof_id)` with `sorting_columns`
+- `wof_locality.parquet` — 1.4 GiB, 4,796,292 rows, 2,342 row groups of 2048
+  (642.5 KiB each), sorted by `(country, wof_id)` with `sorting_columns`
   declared **[derived]**.
-- `locality.pmtiles` — 680.9 MB, layer `locality`.
+- `locality.pmtiles` — 687.4 MiB, layer `locality`.
 - [geocode.earth's combined
   GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet)
-  — 5.5 GB, all 21 placetypes, spatially clustered. Read this for a planet-wide
-  scan or a spatial query; **do not** read it to fetch one place, because its
-  geometry chunks are a median of 38 MiB and up to 285 MiB per row group
-  **[derived]**.
+  — 5.5 GiB, all 21 placetypes, spatially clustered. Read this for a
+  planet-wide scan or a spatial query; **do not** read it to fetch one place,
+  because its geometry chunks are a median of 38 MiB and up to 285 MiB per row
+  group **[derived]**.
 
 ## Schema & field notes
 
@@ -101,9 +101,12 @@ of them is any of those]**. Pelias's own active-record filter needs all four.
 If currency matters, read the [SQLite
 distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2).
 
-**Area is reproducible, not official.** `area_km2` is `ST_Area_Spheroid` on the
-geometry in this file. For a place whose outline was carried up from a coarser
-source, that is not its surveyed area.
+**Area is reproducible, not official.** `area_km2` is pyproj's geodesic measure
+on the geometry in this file — not DuckDB's `ST_Area_Spheroid`, which returns
+NaN for a large minority of these geometries **[derived]**. For a place whose
+outline was carried up from a coarser source, it is not that place's surveyed
+area, and it measures land only, so a country comes out a little under its
+published figure.
 
 ## Example queries
 
@@ -132,16 +135,16 @@ FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/locality/wof
 ORDER BY area_km2 DESC LIMIT 10;
 ```
 ```
-Gillen  AUS  locality  nan
-Girraween  AUS  locality  nan
-Gray  AUS  locality  nan
-Gunbalanya  AUS  locality  nan
-Gunn  AUS  locality  nan
-Gunyangara  AUS  locality  nan
-Haasts Bluff  AUS  locality  nan
-Herbert  AUS  locality  nan
-Hermannsburg  AUS  locality  nan
-Hidden Valley  AUS  locality  nan
+Baie-James  CAN  locality  340,511
+Inuvialuit Lands  CAN  locality  91,974
+Northern Rockies  CAN  locality  86,320
+Sahtu Lands  CAN  locality  41,492
+Tlicho Lands  CAN  locality  39,530
+Les Îles-de-la-Madeleine  CAN  locality  33,925
+Nunavut Land Claims Agreement – Bathurst Inlet Inuit Owned Land  CAN  locality  30,982
+La Tuque  CAN  locality  28,301
+Gwich'In Lands  CAN  locality  22,467
+Nunavut Land Claims Agreement – Pangnirtung Inuit Owned Land  CAN  locality  19,841
 ```
 
 The country sort is what makes a country filter cheap: it prunes row groups
@@ -154,11 +157,11 @@ WHERE country = 'NLD'
 ORDER BY area_km2 DESC LIMIT 5;
 ```
 ```
-Rotterdam  locality  453.8
-Lelystad  locality  414.0
-Zeewolde  locality  408.2
-Amsterdam  locality  355.3
-Dronten  locality  229.9
+Rotterdam  locality  282.9
+Lelystad  locality  255.4
+Zeewolde  locality  252.6
+Amsterdam  locality  219.5
+Dronten  locality  141.8
 ```
 
 Which sources the outlines came from, which is also which licenses apply:

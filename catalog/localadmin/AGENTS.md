@@ -46,18 +46,18 @@ INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
 Every file is readable in place over HTTPS range requests. No credentials, no
 API, no server.
 
-- `wof_localadmin.parquet` — 840.8 MB, 164,756 rows, 644 row groups of 256 (1.3
-  MB each), sorted by `(country, wof_id)` with `sorting_columns` declared
+- `wof_localadmin.parquet` — 841.2 MiB, 164,756 rows, 644 row groups of 256
+  (1.3 MiB each), sorted by `(country, wof_id)` with `sorting_columns` declared
   **[derived]**.
-- `wof_localadmin_display.parquet` — 219.9 MB, the same rows at the same
+- `wof_localadmin_display.parquet` — 219.9 MiB, the same rows at the same
   offsets, simplified and buffered outward **[derived]**.
-- `localadmin.pmtiles` — 114.2 MB, layer `localadmin`.
+- `localadmin.pmtiles` — 116.1 MiB, layer `localadmin`.
 - [geocode.earth's combined
   GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet)
-  — 5.5 GB, all 21 placetypes, spatially clustered. Read this for a planet-wide
-  scan or a spatial query; **do not** read it to fetch one place, because its
-  geometry chunks are a median of 38 MiB and up to 285 MiB per row group
-  **[derived]**.
+  — 5.5 GiB, all 21 placetypes, spatially clustered. Read this for a
+  planet-wide scan or a spatial query; **do not** read it to fetch one place,
+  because its geometry chunks are a median of 38 MiB and up to 285 MiB per row
+  group **[derived]**.
 
 ## Schema & field notes
 
@@ -103,9 +103,12 @@ of them is any of those]**. Pelias's own active-record filter needs all four.
 If currency matters, read the [SQLite
 distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2).
 
-**Area is reproducible, not official.** `area_km2` is `ST_Area_Spheroid` on the
-geometry in this file. For a place whose outline was carried up from a coarser
-source, that is not its surveyed area.
+**Area is reproducible, not official.** `area_km2` is pyproj's geodesic measure
+on the geometry in this file — not DuckDB's `ST_Area_Spheroid`, which returns
+NaN for a large minority of these geometries **[derived]**. For a place whose
+outline was carried up from a coarser source, it is not that place's surveyed
+area, and it measures land only, so a country comes out a little under its
+published figure.
 
 ## Example queries
 
@@ -133,16 +136,16 @@ FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/localadmin/w
 ORDER BY area_km2 DESC LIMIT 10;
 ```
 ```
-Brookfield  AUS  localadmin  nan
-Brooklet  AUS  localadmin  nan
-Brooklyn  AUS  localadmin  nan
-Brookvale  AUS  localadmin  nan
-Brooms Head  AUS  localadmin  nan
-Broughton Vale  AUS  localadmin  nan
-Broulee  AUS  localadmin  nan
-Brownlow Hill  AUS  localadmin  nan
-Brownsville  AUS  localadmin  nan
-Bruah  AUS  localadmin  nan
+Gibson Desert South  AUS  localadmin  328,733
+Marree  AUS  localadmin  258,128
+Glendambo  AUS  localadmin  198,535
+Wiluna  AUS  localadmin  181,295
+Telfer  AUS  localadmin  178,059
+Tanami  AUS  localadmin  141,978
+Mount Burges  AUS  localadmin  125,257
+Menzies  AUS  localadmin  124,572
+Tanami East  AUS  localadmin  115,005
+Gibson Desert North  AUS  localadmin  114,005
 ```
 
 The country sort is what makes a country filter cheap: it prunes row groups
@@ -155,11 +158,11 @@ WHERE country = 'NLD'
 ORDER BY area_km2 DESC LIMIT 5;
 ```
 ```
-Sudwest-Fryslan  localadmin  829.3
-Noordoostpolder  localadmin  762.2
-De Fryske Marren  localadmin  683.7
-Hollands Kroon  localadmin  611.5
-Midden-Drenthe  localadmin  564.5
+Sudwest-Fryslan  localadmin  505.5
+Noordoostpolder  localadmin  468.0
+De Fryske Marren  localadmin  417.8
+Hollands Kroon  localadmin  374.0
+Emmen  localadmin  346.3
 ```
 
 Which sources the outlines came from, which is also which licenses apply:

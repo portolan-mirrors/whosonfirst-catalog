@@ -10,10 +10,10 @@ rebuild.
 | | |
 |---|---|
 | Rows | 9,478,779 |
-| Size | 603,916,555 bytes (575.9 MB) |
+| Size | 603,916,555 bytes (575.9 MiB) |
 | Bytes per row | 63.71 |
 | Row groups | 741 of 12,800 rows |
-| Mean row group | 815,002 bytes (795.9 KB) |
+| Mean row group | 815,002 bytes (795.9 KiB) |
 | Footer | 1,713,128 bytes |
 | Page index | 431,565 bytes |
 
@@ -26,7 +26,7 @@ The page index sits before the footer and is read
 lazily, per column chunk, only by a reader that wants a page rather
 than a whole chunk.
 
-So a cold first lookup is about 2.4 MB: the footer plus one row group. Every
+So a cold first lookup is about 2.4 MiB: the footer plus one row group. Every
 later keystroke that keeps the same two-letter prefix stays inside the same row
 group, which the client
 already holds.
@@ -45,8 +45,8 @@ many range requests a client makes.
 | 95th percentile | 1 |
 | maximum | 24 |
 
-At 795.9 KB per group, the median prefix therefore costs
-about 795.9 KB and the worst about 18.7 MB.
+At 795.9 KiB per group, the median prefix therefore costs
+about 795.9 KiB and the worst about 18.7 MiB.
 
 ## Where the bytes go
 
@@ -92,7 +92,7 @@ is to minimize *footer plus page index plus one row group*, not to
 hit a row-group size.
 
 At 12,800 rows per group this index lands at
-795.9 KB per group with a 1.6 MB footer. Halving
+795.9 KiB per group with a 1.6 MiB footer. Halving
 the group size would roughly double the footer, which a client pays
 on every cold start, to halve a per-keystroke cost it mostly does not
 pay because consecutive keystrokes share a group.
@@ -114,23 +114,23 @@ size          603.92 MB
 rows          9,478,779
 row groups    741
 columns       25
-footer read   1.71 MB in 2 request(s), 330 ms
+footer read   1.71 MB in 2 request(s), 77 ms
 sorted_by     [{"column_idx":1,"descending":false,"nulls_first":true}]
 kv metadata   cnmw:catalog_version=whosonfirst-admin-parquet-2025-04-07, wof:distribution=whosonfirst-data-admin, wof:parquet_built=2025-04-07T13:07:59Z, wof:source_url=https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet, cnmw:role=names-index
 
-prefix "zur"  groups 1  fetched 641.5 KB in 2 request(s), 647 ms  rows 371  places 347
+prefix "zur"  groups 1  fetched 641.5 KB in 2 request(s), 169 ms  rows 371  places 347
   top: Zürich [L1 CHE, Switzerland] | Zurrico [L1 MLT, Malta] | Zurmi [L2 NGA, Zamfara]
 
-prefix "sao pa"  groups 1  fetched 594.1 KB in 2 request(s), 315 ms  rows 89  places 88
+prefix "sao pa"  groups 1  fetched 594.1 KB in 2 request(s), 94 ms  rows 89  places 88
   top: São Paulo [L1 BRA, Southeast] | São Patrício [L1 VCT, Saint Vincent and the Grenadines] | Sao Patricio [L2 BRA, Goias]
 
-prefix "kyoto"  groups 1  fetched 608.6 KB in 2 request(s), 307 ms  rows 8  places 5
+prefix "kyoto"  groups 1  fetched 608.6 KB in 2 request(s), 113 ms  rows 8  places 5
   top: Kyoto [L1 JPN, Japan] | Kyōto [L2 JPN, Kyoto] | Kyōto [L4 JPN, Kyoto]
 
-prefix "købe"  groups 1  fetched 0 B in 0 request(s), 258 ms  rows 7  places 7
+prefix "købe"  groups 1  fetched 0 B in 0 request(s), 92 ms  rows 7  places 7
   top: København K [L5 DNK, Copenhagen] | København N [L5 DNK, Copenhagen] | København NV [L5 DNK, Copenhagen]
 
-prefix "wa"  groups 5  fetched 2.99 MB in 10 request(s), 695 ms  rows 47619  places 46425
+prefix "wa"  groups 5  fetched 2.99 MB in 10 request(s), 235 ms  rows 47619  places 46425
   top: Wallis and Futuna [L0 FRA] | Watykan [L0 VAT] | Wake [L0 XX]
 
 OK: required columns present, sort declared, row group ranges non-overlapping

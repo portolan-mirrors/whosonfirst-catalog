@@ -28,8 +28,8 @@ distribution, so this is not address geocoding.
 | you want | read | why |
 |---|---|---|
 | To draw many at once | `neighbourhood.pmtiles` | Tiled, capped at 400 KB per tile |
-| To clip, measure, export or analyse one place | `wof_neighbourhood.parquet` | The real geometry, 1.0 MB per range request |
-| To scan the whole planet, or all 21 placetypes at once | [geocode.earth's combined GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet) | One file, spatially clustered, 5.5 GB |
+| To clip, measure, export or analyse one place | `wof_neighbourhood.parquet` | The real geometry, 1.0 MiB per range request |
+| To scan the whole planet, or all 21 placetypes at once | [geocode.earth's combined GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet) | One file, spatially clustered, 5.5 GiB |
 | The full hierarchy, every language, or the temporal fields | [geocode.earth's SQLite distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2) | The GeoParquet build does not carry them |
 
 ### Why this catalog has its own GeoParquet at all
@@ -49,13 +49,13 @@ decoding a single row. `placetype` statistics span most of the alphabet in most
 row groups, so filtering to this level prunes nothing either.
 
 This file is the same 397,416 places sorted by `(country, wof_id)` with the
-sort declared, in 98 exactly-full row groups of 4096 — 1.0 MB each.
+sort declared, in 98 exactly-full row groups of 4096 — 1.0 MiB each.
 
 ## Files
 
 ```
-neighbourhood/wof_neighbourhood.parquet  102.4 MB, 397,416 rows, 98 row groups of 4096
-neighbourhood/neighbourhood.pmtiles  84.5 MB, layer "neighbourhood"
+neighbourhood/wof_neighbourhood.parquet  102.6 MiB, 397,416 rows, 98 row groups of 4096
+neighbourhood/neighbourhood.pmtiles  85.9 MiB, layer "neighbourhood"
 ```
 
 ## Schema
@@ -93,12 +93,13 @@ Every column, with its provenance tag and full description, is in
 | `concordance_keys` | string | **One** concordance key, not the set |
 | `concordance_ids` | string | The identifier belonging to `concordance_keys` |
 | `geom_src` | string | **The provenance and licensing key, and the most important column here.** WOF documents `src:geom` as "The data source of a record's geometry |
-| `area_km2` | double | Geodesic area in square kilometres, from DuckDB's `ST_Area_Spheroid` |
-| `perimeter_km` | double | Geodesic perimeter in kilometres, from `ST_Perimeter_Spheroid` |
+| `area_km2` | double | Geodesic area in square kilometres, from pyproj's `Geod`, which is GeographicLib |
+| `perimeter_km` | double | Geodesic perimeter in kilometres, from the same pyproj `Geod` call |
 | `vertices` | int32 | Coordinates in the geometry, from `ST_NPoints` |
 | `geometry_repaired` | boolean | True where the upstream geometry failed `ST_IsValid` and this build rebuilt it with `ST_MakeValid` and `ST_CollectionExtract(..., 3)` |
+| `geometry_flattened` | boolean | True where the upstream geometry carried a Z coordinate and this build dropped it with `ST_Force2D` |
 | `bbox` | struct | The feature's bounding box in EPSG:4326 degrees, as four doubles declared in the GeoParquet 1.1 `covering` metadata, so a reader can prune row groups spatially without decoding any geometry |
-| `geometry` | byte_array | WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags |
+| `geometry` | byte_array | WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags and the 2 rows `geometry_flattened` flags |
 
 ## What this collection measures
 
@@ -180,16 +181,16 @@ FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/neighbourhoo
 ORDER BY area_km2 DESC LIMIT 10;
 ```
 ```
-Baizhifang  CHN  neighbourhood  nan
-Chedaogou  CHN  neighbourhood  nan
-Fengsheng  CHN  neighbourhood  nan
-Balizhuang  CHN  neighbourhood  nan
-Beixiaguan  CHN  neighbourhood  nan
-Chaowai  CHN  neighbourhood  nan
-Chaoyang  CHN  neighbourhood  nan
-Chaoyangmen  CHN  neighbourhood  nan
-Chongwen  CHN  neighbourhood  nan
-Dazhalan  CHN  neighbourhood  nan
+Waddenzee  NLD  neighbourhood  1,774
+Alden Bridge  USA  neighbourhood  1,144
+West Carleton  CAN  macrohood  722
+San Fernando Valley  USA  macrohood  547
+Sterling Ridge  USA  neighbourhood  511
+IJsselmeer  NLD  neighbourhood  458
+Chesterfield Court  USA  neighbourhood  428
+Osgoode  CAN  macrohood  428
+Haukipudas  FIN  neighbourhood  427
+Rideau  CAN  macrohood  418
 ```
 
 The country sort is what makes a country filter cheap: it prunes row groups
@@ -202,11 +203,11 @@ WHERE country = 'NLD'
 ORDER BY area_km2 DESC LIMIT 5;
 ```
 ```
-Waddenzee  neighbourhood  2929.7
-IJsselmeer  neighbourhood  750.3
-Buitengebied Biddinghuizen  neighbourhood  210.8
-Buitengebied Dronten  neighbourhood  206.4
-Middengebied  neighbourhood  185.4
+Waddenzee  neighbourhood  1773.9
+IJsselmeer  neighbourhood  458.3
+Buitengebied Biddinghuizen  neighbourhood  130.2
+Buitengebied Dronten  neighbourhood  127.2
+Middengebied  neighbourhood  114.6
 ```
 
 Which sources the outlines came from, which is also which licenses apply:

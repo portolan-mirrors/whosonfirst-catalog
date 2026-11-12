@@ -46,18 +46,18 @@ INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
 Every file is readable in place over HTTPS range requests. No credentials, no
 API, no server.
 
-- `wof_country.parquet` — 61.5 MB, 353 rows, 89 row groups of 4 (708.1 KB
+- `wof_country.parquet` — 61.6 MiB, 353 rows, 89 row groups of 4 (708.2 KiB
   each), sorted by `(country, wof_id)` with `sorting_columns` declared
   **[derived]**.
-- `wof_country_display.parquet` — 5.1 MB, the same rows at the same offsets,
+- `wof_country_display.parquet` — 5.1 MiB, the same rows at the same offsets,
   simplified and buffered outward **[derived]**.
-- `country.pmtiles` — 2.3 MB, layer `country`.
+- `country.pmtiles` — 2.3 MiB, layer `country`.
 - [geocode.earth's combined
   GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet)
-  — 5.5 GB, all 21 placetypes, spatially clustered. Read this for a planet-wide
-  scan or a spatial query; **do not** read it to fetch one place, because its
-  geometry chunks are a median of 38 MiB and up to 285 MiB per row group
-  **[derived]**.
+  — 5.5 GiB, all 21 placetypes, spatially clustered. Read this for a
+  planet-wide scan or a spatial query; **do not** read it to fetch one place,
+  because its geometry chunks are a median of 38 MiB and up to 285 MiB per row
+  group **[derived]**.
 
 ## Schema & field notes
 
@@ -103,9 +103,12 @@ of them is any of those]**. Pelias's own active-record filter needs all four.
 If currency matters, read the [SQLite
 distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2).
 
-**Area is reproducible, not official.** `area_km2` is `ST_Area_Spheroid` on the
-geometry in this file. For a place whose outline was carried up from a coarser
-source, that is not its surveyed area.
+**Area is reproducible, not official.** `area_km2` is pyproj's geodesic measure
+on the geometry in this file — not DuckDB's `ST_Area_Spheroid`, which returns
+NaN for a large minority of these geometries **[derived]**. For a place whose
+outline was carried up from a coarser source, it is not that place's surveyed
+area, and it measures land only, so a country comes out a little under its
+published figure.
 
 ## Example queries
 
@@ -135,16 +138,16 @@ FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/country/wof_
 ORDER BY area_km2 DESC LIMIT 10;
 ```
 ```
-Solomon Islands  SLB  country  nan
-Ashmore and Cartier Is.  AUS  dependency  nan
-Coral Sea Islands  AUS  dependency  nan
-Australia  AUS  country  nan
-Japan  JPN  country  nan
-Russia  RUS  country  nan
-East Timor  TLS  country  nan
-Tonga  TON  country  nan
-Mexico  MEX  country  nan
-Marshall Islands  MHL  country  nan
+Russia  RUS  country  16,975,473
+Antarctica  ATA  country  12,358,174
+Canada  CAN  country  9,875,450
+United States  USA  country  9,833,548
+China  CHN  country  9,377,064
+Brazil  BRA  country  8,479,492
+Australia  AUS  country  7,690,962
+India  IND  country  3,155,502
+Argentina  ARG  country  2,779,517
+Kazakhstan  KAZ  country  2,726,508
 ```
 
 The country sort is what makes a country filter cheap: it prunes row groups
@@ -157,8 +160,8 @@ WHERE country = 'NLD'
 ORDER BY area_km2 DESC LIMIT 5;
 ```
 ```
-Netherlands  country  66849.1
-Caribbean Netherlands  dependency  126.3
+Netherlands  country  41398.3
+Caribbean Netherlands  dependency  321.0
 ```
 
 Which sources the outlines came from, which is also which licenses apply:

@@ -9,7 +9,7 @@
   ],
   "id": "names",
   "title": "Who's On First Gazetteer Name Index",
-  "description": "**The gazetteer index: a name search sidecar, not a boundary dataset.** 5,405,294 places plus 4,073,485 alternative spellings of their names, 9,478,779 rows in all, sorted by a folded form of the name so that a static client with no server can turn a typed name into a Who's On First identifier, a bounding box and a point.\n\n**The sort is the whole design.** Row group statistics on `name_norm` are tight, non-overlapping alphabetical ranges, the footer declares the sort, and the Parquet page index is written, so a typed prefix resolves from one or two row groups rather than a download. The manifest at [index.json](index.json) is about 3 KB and carries the index's exact size, row group count and checksum, the `catalog_version` the boundary files are pinned to, and the attribution a client has to show. Fetch it first.\n\nEvery row carries what a result list needs without a second fetch: the display spelling, the level, the country, the parent's name, the population where WOF has one, WOF's own `min_zoom` prominence signal, a bbox to fly to, a point to pin, and an advisory `geometry_ref` that turns the geometry fetch into a single range read.\n\n**Multilingual, within a limit worth knowing.** The alternative spellings come from the 25 language columns geocode.earth's GeoParquet build carries. Who's On First itself carries names in hundreds of languages — one San Francisco record has 214 `name:*` properties — but those live in the SQLite and GeoJSON distributions, so this index cannot be richer than 25 languages however multilingual WOF is. Both distributions are assets of this collection.\n\nThis is place-name lookup, not address geocoding. The [agent guide](AGENTS.md) has the prefix-lookup recipe and the join back to geometry.",
+  "description": "**The gazetteer index: a name search sidecar, not a boundary dataset.** 5,405,294 places plus 4,073,485 alternative spellings of their names, 9,478,779 rows in all, sorted by a folded form of the name so that a static client with no server can turn a typed name into a Who's On First identifier, a bounding box and a point.\n\n**The sort is the whole design.** Row group statistics on `name_norm` are tight, non-overlapping alphabetical ranges, the footer declares the sort, and the Parquet page index is written, so a typed prefix resolves from one or two row groups rather than a download. The manifest at [index.json](index.json) is about 7 KB and carries the index's exact size, row group count and checksum, the `catalog_version` the boundary files are pinned to, and the attribution a client has to show. Fetch it first.\n\nEvery row carries what a result list needs without a second fetch: the display spelling, the level, the country, the parent's name, the population where WOF has one, WOF's own `min_zoom` prominence signal, a bbox to fly to, a point to pin, and an advisory `geometry_ref` that turns the geometry fetch into a single range read.\n\n**Multilingual, within a limit worth knowing.** The alternative spellings come from the 25 language columns geocode.earth's GeoParquet build carries. Who's On First itself carries names in hundreds of languages — one San Francisco record has 214 `name:*` properties — but those live in the SQLite and GeoJSON distributions, so this index cannot be richer than 25 languages however multilingual WOF is. Both distributions are assets of this collection.\n\nThis is place-name lookup, not address geocoding. The [agent guide](AGENTS.md) has the prefix-lookup recipe and the join back to geometry.",
   "license": "other",
   "keywords": [
     "gazetteer",
@@ -33,10 +33,9 @@
     },
     {
       "name": "geocode.earth",
-      "description": "Builds and hosts the distributions. Who's On First lives as 260 GitHub repositories of GeoJSON; geocode.earth compiles them into combined GeoParquet, SQLite, SpatiaLite, GeoJSON-bundle and PMTiles files and serves them over HTTPS with range requests and permissive CORS. whosonfirst.org's own download page points here.",
+      "description": "Builds and hosts the distributions. Who's On First lives as 260 GitHub repositories of GeoJSON; geocode.earth compiles them into combined GeoParquet, SQLite, SpatiaLite, GeoJSON-bundle and PMTiles files and serves them over HTTPS with range requests and permissive CORS, which is what makes this a metadata-first catalog rather than a copy. whosonfirst.org's own download page points here. (The Portolan `host` role names the organization serving *this catalog's* files, so it sits on Portolan Mirrors; geocode.earth hosts the upstream assets linked from every collection.)",
       "roles": [
-        "processor",
-        "host"
+        "processor"
       ],
       "url": "https://geocode.earth/data/whosonfirst/combined/"
     },
@@ -201,8 +200,8 @@
     },
     "manifest": {
       "href": "./index.json",
-      "file:size": 4805,
-      "file:checksum": "12209eed718b722f2aea41077caf3ac9a161d2bc43c2f755663cf1ee78ec1fe51514",
+      "file:size": 8167,
+      "file:checksum": "122030dadf1e9fada00739829da130e2ab89c4076e35ed8ee2fee26f42d3b35c6f32",
       "type": "application/json",
       "title": "Index manifest: fetch this before the index",
       "roles": [
@@ -212,8 +211,8 @@
     },
     "pmtiles": {
       "href": "./names.pmtiles",
-      "file:size": 182396524,
-      "file:checksum": "1220600fb731d470acacd5c1c39ed714b85179913a12b2f2576b8c25d6e57b9b7d86",
+      "file:size": 182395531,
+      "file:checksum": "122044da0eeeb3a9f99306c88f97aef99dee996bf22016adbcf06960b7869fbcde14",
       "type": "application/vnd.pmtiles",
       "title": "Who's On First Gazetteer Name Index, vector tiles to zoom 8",
       "roles": [
@@ -291,7 +290,8 @@
       "roles": [
         "metadata",
         "source"
-      ]
+      ],
+      "description": "No `file:size` or `file:checksum`, deliberately: this is geocode.earth's live index, which gains an entry every time a country is rebuilt. Pinning a digest to a file whose whole job is to change would be a promise this catalog cannot keep. It is also the authoritative record of what vintage every upstream file is, which no URL carries."
     },
     "upstream-members": {
       "href": "https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet.json",
@@ -300,7 +300,44 @@
       "roles": [
         "metadata",
         "source"
-      ]
+      ],
+      "description": "No `file:size` or `file:checksum`, deliberately: this is geocode.earth's live index, which gains an entry every time a country is rebuilt. Pinning a digest to a file whose whole job is to change would be a promise this catalog cannot keep. It is also the authoritative record of what vintage every upstream file is, which no URL carries."
+    },
+    "whosonfirst-license": {
+      "href": "../_assets/whosonfirst/LICENSE.md",
+      "file:size": 725,
+      "file:checksum": "1220634276f100c598a3f8b79250a852383278857868a2d5efcf6639d485ae4a2cb0",
+      "type": "text/markdown",
+      "title": "Who's On First LICENSE.md, verbatim",
+      "roles": [
+        "metadata",
+        "source"
+      ],
+      "description": "The project's own license statement, copied on 2026-11-12. It is the source of this catalog's `license: other`: CC0 is scoped to \"the format and structure that allows Who's On First to operate\", and the records inherit terms from their sources."
+    },
+    "whosonfirst-sources": {
+      "href": "../_assets/whosonfirst/sources-spec-latest.json",
+      "file:size": 172940,
+      "file:checksum": "1220d8a5dd873d26eee11583de4438185c046dec33848d5bde27047ca4bff44d9c39",
+      "type": "application/json",
+      "title": "whosonfirst-sources: 182 source records with per-source licensing",
+      "roles": [
+        "metadata",
+        "source"
+      ],
+      "description": "The table `geom_src` resolves against. Each record carries `license`, `license_type` and the `usage_geometry`, `usage_property` and `usage_concordance` flags that say what the source was actually used for. This is what makes a specific feature's license a fact rather than an average."
+    },
+    "whosonfirst-placetypes": {
+      "href": "../_assets/whosonfirst/placetypes-spec-latest.json",
+      "file:size": 3972,
+      "file:checksum": "1220e435083ffe865a38c5b738aad3451a41bc10695293228a78b55869651d3a609f",
+      "type": "application/json",
+      "title": "whosonfirst-placetypes: the canonical 35 placetypes and their parents",
+      "roles": [
+        "metadata",
+        "source"
+      ],
+      "description": "The machine-readable placetype spec, copied on 2026-11-12. It is more current than the project's own website page, and it is what this catalog's level mapping was built against."
     },
     "style-ambiguity": {
       "href": "./styles/ambiguity.json",

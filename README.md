@@ -131,9 +131,9 @@ run with `--confirm`. What is left, in order:
    profile `catalog.publish.yaml` names.
 3. **Upload the data first**, so no published metadata points at a missing
    file: `python3 tools/upload_data.py` to see the plan, then
-   `--confirm`. About 7 GiB over 20 objects — six boundary GeoParquet files
-   (3.3 GB), four display companions (0.4 GB), the index (0.6 GB) and seven
-   PMTiles archives (1.2 GB).
+   `--confirm`. 5.2 GiB over 18 objects — six boundary GeoParquet files
+   (3.1 GiB), four display companions (345 MiB), the gazetteer index
+   (576 MiB) and seven PMTiles archives (1.2 GiB).
 4. **Then publish the metadata**: `python3 tools/publish.py`, then
    `--confirm`.
 5. **Re-check against the live host**: `portolan check --live` from

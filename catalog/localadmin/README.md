@@ -26,10 +26,10 @@ distribution, so this is not address geocoding.
 
 | you want | read | why |
 |---|---|---|
-| To draw an outline, now | `wof_localadmin_display.parquet` | Simplified, 219.9 MB against 840.8 MB |
+| To draw an outline, now | `wof_localadmin_display.parquet` | Simplified, 219.9 MiB against 841.2 MiB |
 | To draw many at once | `localadmin.pmtiles` | Tiled, capped at 400 KB per tile |
-| To clip, measure, export or analyse one place | `wof_localadmin.parquet` | The real geometry, 1.3 MB per range request |
-| To scan the whole planet, or all 21 placetypes at once | [geocode.earth's combined GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet) | One file, spatially clustered, 5.5 GB |
+| To clip, measure, export or analyse one place | `wof_localadmin.parquet` | The real geometry, 1.3 MiB per range request |
+| To scan the whole planet, or all 21 placetypes at once | [geocode.earth's combined GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet) | One file, spatially clustered, 5.5 GiB |
 | The full hierarchy, every language, or the temporal fields | [geocode.earth's SQLite distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2) | The GeoParquet build does not carry them |
 
 ### Why this catalog has its own GeoParquet at all
@@ -49,14 +49,14 @@ decoding a single row. `placetype` statistics span most of the alphabet in most
 row groups, so filtering to this level prunes nothing either.
 
 This file is the same 164,756 places sorted by `(country, wof_id)` with the
-sort declared, in 644 exactly-full row groups of 256 — 1.3 MB each.
+sort declared, in 644 exactly-full row groups of 256 — 1.3 MiB each.
 
 ## Files
 
 ```
-localadmin/wof_localadmin.parquet  840.8 MB, 164,756 rows, 644 row groups of 256
-localadmin/wof_localadmin_display.parquet  219.9 MB (26.2% of the full file)
-localadmin/localadmin.pmtiles  114.2 MB, layer "localadmin"
+localadmin/wof_localadmin.parquet  841.2 MiB, 164,756 rows, 644 row groups of 256
+localadmin/wof_localadmin_display.parquet  219.9 MiB (26.1% of the full file)
+localadmin/localadmin.pmtiles  116.1 MiB, layer "localadmin"
 ```
 
 ### The display file is outward-biased, and that matters
@@ -113,12 +113,13 @@ Every column, with its provenance tag and full description, is in
 | `concordance_keys` | string | **One** concordance key, not the set |
 | `concordance_ids` | string | The identifier belonging to `concordance_keys` |
 | `geom_src` | string | **The provenance and licensing key, and the most important column here.** WOF documents `src:geom` as "The data source of a record's geometry |
-| `area_km2` | double | Geodesic area in square kilometres, from DuckDB's `ST_Area_Spheroid` |
-| `perimeter_km` | double | Geodesic perimeter in kilometres, from `ST_Perimeter_Spheroid` |
+| `area_km2` | double | Geodesic area in square kilometres, from pyproj's `Geod`, which is GeographicLib |
+| `perimeter_km` | double | Geodesic perimeter in kilometres, from the same pyproj `Geod` call |
 | `vertices` | int32 | Coordinates in the geometry, from `ST_NPoints` |
 | `geometry_repaired` | boolean | True where the upstream geometry failed `ST_IsValid` and this build rebuilt it with `ST_MakeValid` and `ST_CollectionExtract(..., 3)` |
+| `geometry_flattened` | boolean | True where the upstream geometry carried a Z coordinate and this build dropped it with `ST_Force2D` |
 | `bbox` | struct | The feature's bounding box in EPSG:4326 degrees, as four doubles declared in the GeoParquet 1.1 `covering` metadata, so a reader can prune row groups spatially without decoding any geometry |
-| `geometry` | byte_array | WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags |
+| `geometry` | byte_array | WKB, EPSG:4326 (OGC:CRS84), exactly the coordinates WOF publishes except for the 480 rows `geometry_repaired` flags and the 2 rows `geometry_flattened` flags |
 
 ## What this collection measures
 
@@ -198,16 +199,16 @@ FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/localadmin/w
 ORDER BY area_km2 DESC LIMIT 10;
 ```
 ```
-Holbrook  AUS  localadmin  nan
-Holgate  AUS  localadmin  nan
-Holmesville  AUS  localadmin  nan
-Holroyd  AUS  localadmin  nan
-Holsworthy  AUS  localadmin  nan
-Homebush  AUS  localadmin  nan
-Homebush West  AUS  localadmin  nan
-Homeleigh  AUS  localadmin  nan
-Hopkins Creek  AUS  localadmin  nan
-Horningsea Park  AUS  localadmin  nan
+Gibson Desert South  AUS  localadmin  328,733
+Marree  AUS  localadmin  258,128
+Glendambo  AUS  localadmin  198,535
+Wiluna  AUS  localadmin  181,295
+Telfer  AUS  localadmin  178,059
+Tanami  AUS  localadmin  141,978
+Mount Burges  AUS  localadmin  125,257
+Menzies  AUS  localadmin  124,572
+Tanami East  AUS  localadmin  115,005
+Gibson Desert North  AUS  localadmin  114,005
 ```
 
 The country sort is what makes a country filter cheap: it prunes row groups
@@ -220,11 +221,11 @@ WHERE country = 'NLD'
 ORDER BY area_km2 DESC LIMIT 5;
 ```
 ```
-Sudwest-Fryslan  localadmin  829.3
-Noordoostpolder  localadmin  762.2
-De Fryske Marren  localadmin  683.7
-Hollands Kroon  localadmin  611.5
-Midden-Drenthe  localadmin  564.5
+Sudwest-Fryslan  localadmin  505.5
+Noordoostpolder  localadmin  468.0
+De Fryske Marren  localadmin  417.8
+Hollands Kroon  localadmin  374.0
+Emmen  localadmin  346.3
 ```
 
 Which sources the outlines came from, which is also which licenses apply:

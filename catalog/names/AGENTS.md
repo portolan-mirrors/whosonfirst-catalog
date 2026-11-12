@@ -36,8 +36,8 @@ name. Public root:
 `https://data.source.coop/portolan-mirrors/whosonfirst-catalog/catalog.json`
 
 ```
-names/wof_names.parquet  575.9 MB, 9,478,779 rows, 741 row groups of 12,800
-names/index.json  4,805 bytes, fetch first
+names/wof_names.parquet  575.9 MiB, 9,478,779 rows, 741 row groups of 12,800
+names/index.json  8,167 bytes, fetch first
 ```
 
 The `geometry` column is **one point per row**, the place's centroid. It is a
@@ -57,7 +57,7 @@ size (603,916,555 bytes), row group count (741), checksum, footer size
 this file and of every boundary file, the URL and row count of each boundary
 and display file, and the attribution each source requires.
 
-**Then range-request the index.** At 575.9 MB this file is not meant to be
+**Then range-request the index.** At 575.9 MiB this file is not meant to be
 loaded whole. The manifest's `index.size` lets the footer read be one
 exactly-sized tail request of 1,713,128 bytes rather than hyparquet's
 speculative 512 KB default, with a further 431,565 bytes of page index read
@@ -168,8 +168,8 @@ GROUP BY name_norm ORDER BY places DESC LIMIT 8;
 San Antonio  1,828
 סן אנטוניו  1,788
 Сан-Антоніо  1,770
-سان أنطونيو  1,765
 Сан-Антонио  1,765
+سان أنطونيو  1,765
 サンアントニオ  1,763
 ```
 
@@ -184,11 +184,11 @@ WHERE n.level = 0 AND n.alt_of IS NULL
 ORDER BY b.area_km2 DESC LIMIT 5;
 ```
 ```
-ناورو  NRU  nan  40
-أستراليا  AUS  nan  63041
-توفالو  TUV  nan  850
-تشيلي  CHL  nan  113759
-توكيلاو  TKL  nan  556
+روسيا  RUS  16975473.0  480671
+القارة القطبية الجنوبية  ATA  12358174.0  23835
+كندا  CAN  9875450.0  129056
+الولايات المتحدة  USA  9833548.0  75410
+الصين  CHN  9377064.0  238558
 ```
 
 ## Related collections

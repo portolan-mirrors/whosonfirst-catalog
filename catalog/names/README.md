@@ -24,9 +24,9 @@ distribution holds no street or house number.
 ## Files
 
 ```
-names/wof_names.parquet  575.9 MB, 9,478,779 rows, 741 row groups of 12,800
-names/index.json  4,805 bytes, the manifest to fetch first
-names/names.pmtiles  173.9 MB, zoom 0-8, layer "names"
+names/wof_names.parquet  575.9 MiB, 9,478,779 rows, 741 row groups of 12,800
+names/index.json  8,167 bytes, the manifest to fetch first
+names/names.pmtiles  173.9 MiB, zoom 0-8, layer "names"
 ```
 
 ## How to read it
@@ -37,7 +37,7 @@ exactly-sized tail request, every boundary file's URL and row count, the
 `catalog_version` (`whosonfirst-admin-parquet-2025-04-07`) all of them are
 pinned to, and the attribution a client must display.
 
-**Then range-request the index.** At 575.9 MB this file is not meant to be
+**Then range-request the index.** At 575.9 MiB this file is not meant to be
 loaded whole. The manifest's `index.size` lets the footer read be one
 exactly-sized tail request of 1,713,128 bytes rather than a speculative 512 KB.
 After that, the sort does the work: a typed prefix lives in a contiguous run of
@@ -62,8 +62,9 @@ compressors package is **required**: every column chunk is zstd.
 | 4 | 8,093,496 | 4,796,292 | 3,297,204 |
 | 5 | 629,561 | 397,416 | 232,145 |
 
-`dropped_unnamed: 0` — places whose name folds to nothing, so they cannot be
-found by name. They still exist with geometry in their boundary collection.
+`dropped_unnamed: 0` — the build drops a place whose name folds to nothing,
+because it cannot be found by name, and **no place in this distribution does**.
+Every one of the 5,405,294 has a name.
 
 **7,221,629 of 9,478,779 rows have `is_point = true`**, meaning the place's
 geometry in its boundary collection is a single point rather than a polygon.
@@ -219,11 +220,11 @@ WHERE n.level = 0 AND n.alt_of IS NULL
 ORDER BY b.area_km2 DESC LIMIT 5;
 ```
 ```
-كاليدونيا الجديدة  FRA  nan  12625
-Northern Limit Line  XX  nan  404
-إندونيسيا  IDN  nan  62757
-جزر الكوريل  XX  nan  4477
-جزر أشمور وكارتيير  AUS  nan  56
+روسيا  RUS  16975473.0  480671
+القارة القطبية الجنوبية  ATA  12358174.0  23835
+كندا  CAN  9875450.0  129056
+الولايات المتحدة  USA  9833548.0  75410
+الصين  CHN  9377064.0  238558
 ```
 
 ## More

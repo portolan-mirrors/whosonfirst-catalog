@@ -7,8 +7,13 @@ milliseconds on a clean checkout.
 
 CI clones the metadata and not the bytes, because .gitignore keeps data out of
 git. Set CI_LIGHT=1 there. It exempts asset hrefs and link hrefs with a data
-suffix, and nothing else. Every structural link still resolves. Leave CI_LIGHT unset
-locally, where the bytes are on disk, and the gate checks every href.
+suffix, and nothing else. Every structural link still resolves.
+
+Leave CI_LIGHT unset locally. This catalog's data lives in the staging tree
+named by `data_dir`, not beside the STAC objects, so the gate resolves a data
+href there and checks the bytes are present -- which is the check worth
+having, because a collection.json naming a file the build never wrote is
+exactly the mistake that reaches the bucket.
 
 Run: python3 tests/test_links.py
 """
@@ -41,9 +46,37 @@ def is_remote(href: str) -> bool:
     return "://" in href or href.startswith(("#", "mailto:"))
 
 
+# Where the build puts the data this catalog adds. It is outside `catalog/`
+# on purpose -- data never enters git -- so a data href never resolves beside
+# the STAC object that names it. Rather than exempt those hrefs locally, this
+# gate resolves them against the staging tree and checks that the bytes the
+# catalog promises are actually there. That is the check worth having: a
+# collection.json naming a file the build never wrote is exactly the mistake
+# that reaches the bucket.
+DATA_ROOT = (ROOT / config["data_dir"]).resolve() if config.get("data_dir") else None
+
+
+def is_data(href: str) -> bool:
+    return href.lower().endswith(DATA_SUFFIXES)
+
+
+def staged(path: Path, href: str) -> Path | None:
+    """Where a data href lives in the staging tree, if it lives anywhere."""
+    if DATA_ROOT is None:
+        return None
+    collection = path.parent.relative_to(BASE)
+    candidate = (DATA_ROOT / collection / href).resolve()
+    return candidate if candidate.exists() else None
+
+
 def is_unpublished_data(href: str) -> bool:
-    """True when href points at a file kept out of git on purpose."""
-    return CI_LIGHT and href.lower().endswith(DATA_SUFFIXES)
+    """True when href points at a file kept out of git on purpose.
+
+    In CI the checkout holds the metadata and not the bytes, so a data href is
+    exempt there. Locally the bytes exist in the staging tree and the gate
+    checks them instead -- see `staged`.
+    """
+    return CI_LIGHT and is_data(href)
 
 
 def stac_documents() -> list[Path]:
@@ -84,10 +117,13 @@ for path in documents:
             skipped += 1
             continue
         checked += 1
-        if not (path.parent / href).resolve().exists():
-            errors.append(
-                f"{rel_path}: rel:{link.get('rel')} -> {href} does not exist"
-            )
+        if (path.parent / href).resolve().exists():
+            continue
+        if is_data(href) and staged(path, href):
+            continue
+        errors.append(
+            f"{rel_path}: rel:{link.get('rel')} -> {href} does not exist"
+        )
 
     for key, asset in (doc.get("assets") or {}).items():
         href = asset.get("href", "")
@@ -97,6 +133,9 @@ for path in documents:
             skipped += 1
             continue
         checked += 1
+        if is_data(href) and not (path.parent / href).resolve().exists():
+            if staged(path, href):
+                continue
         if not (path.parent / href).resolve().exists():
             errors.append(f"{rel_path}: asset {key} -> {href} does not exist")
 

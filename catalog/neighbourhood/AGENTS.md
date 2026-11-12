@@ -46,16 +46,16 @@ INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
 Every file is readable in place over HTTPS range requests. No credentials, no
 API, no server.
 
-- `wof_neighbourhood.parquet` — 102.4 MB, 397,416 rows, 98 row groups of 4096
-  (1.0 MB each), sorted by `(country, wof_id)` with `sorting_columns` declared
+- `wof_neighbourhood.parquet` — 102.6 MiB, 397,416 rows, 98 row groups of 4096
+  (1.0 MiB each), sorted by `(country, wof_id)` with `sorting_columns` declared
   **[derived]**.
-- `neighbourhood.pmtiles` — 84.5 MB, layer `neighbourhood`.
+- `neighbourhood.pmtiles` — 85.9 MiB, layer `neighbourhood`.
 - [geocode.earth's combined
   GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet)
-  — 5.5 GB, all 21 placetypes, spatially clustered. Read this for a planet-wide
-  scan or a spatial query; **do not** read it to fetch one place, because its
-  geometry chunks are a median of 38 MiB and up to 285 MiB per row group
-  **[derived]**.
+  — 5.5 GiB, all 21 placetypes, spatially clustered. Read this for a
+  planet-wide scan or a spatial query; **do not** read it to fetch one place,
+  because its geometry chunks are a median of 38 MiB and up to 285 MiB per row
+  group **[derived]**.
 
 ## Schema & field notes
 
@@ -101,9 +101,12 @@ of them is any of those]**. Pelias's own active-record filter needs all four.
 If currency matters, read the [SQLite
 distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2).
 
-**Area is reproducible, not official.** `area_km2` is `ST_Area_Spheroid` on the
-geometry in this file. For a place whose outline was carried up from a coarser
-source, that is not its surveyed area.
+**Area is reproducible, not official.** `area_km2` is pyproj's geodesic measure
+on the geometry in this file — not DuckDB's `ST_Area_Spheroid`, which returns
+NaN for a large minority of these geometries **[derived]**. For a place whose
+outline was carried up from a coarser source, it is not that place's surveyed
+area, and it measures land only, so a country comes out a little under its
+published figure.
 
 ## Example queries
 
@@ -133,16 +136,16 @@ FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/neighbourhoo
 ORDER BY area_km2 DESC LIMIT 10;
 ```
 ```
-Baizhifang  CHN  neighbourhood  nan
-Chedaogou  CHN  neighbourhood  nan
-Fengsheng  CHN  neighbourhood  nan
-Balizhuang  CHN  neighbourhood  nan
-Beixiaguan  CHN  neighbourhood  nan
-Chaowai  CHN  neighbourhood  nan
-Chaoyang  CHN  neighbourhood  nan
-Chaoyangmen  CHN  neighbourhood  nan
-Chongwen  CHN  neighbourhood  nan
-Dazhalan  CHN  neighbourhood  nan
+Waddenzee  NLD  neighbourhood  1,774
+Alden Bridge  USA  neighbourhood  1,144
+West Carleton  CAN  macrohood  722
+San Fernando Valley  USA  macrohood  547
+Sterling Ridge  USA  neighbourhood  511
+IJsselmeer  NLD  neighbourhood  458
+Chesterfield Court  USA  neighbourhood  428
+Osgoode  CAN  macrohood  428
+Haukipudas  FIN  neighbourhood  427
+Rideau  CAN  macrohood  418
 ```
 
 The country sort is what makes a country filter cheap: it prunes row groups
@@ -155,11 +158,11 @@ WHERE country = 'NLD'
 ORDER BY area_km2 DESC LIMIT 5;
 ```
 ```
-Waddenzee  neighbourhood  2929.7
-IJsselmeer  neighbourhood  750.3
-Buitengebied Biddinghuizen  neighbourhood  210.8
-Buitengebied Dronten  neighbourhood  206.4
-Middengebied  neighbourhood  185.4
+Waddenzee  neighbourhood  1773.9
+IJsselmeer  neighbourhood  458.3
+Buitengebied Biddinghuizen  neighbourhood  130.2
+Buitengebied Dronten  neighbourhood  127.2
+Middengebied  neighbourhood  114.6
 ```
 
 Which sources the outlines came from, which is also which licenses apply:

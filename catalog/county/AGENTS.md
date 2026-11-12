@@ -46,18 +46,18 @@ INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
 Every file is readable in place over HTTPS range requests. No credentials, no
 API, no server.
 
-- `wof_county.parquet` — 505.0 MB, 42,115 rows, 659 row groups of 64 (784.6 KB
-  each), sorted by `(country, wof_id)` with `sorting_columns` declared
+- `wof_county.parquet` — 505.3 MiB, 42,115 rows, 659 row groups of 64 (785.1
+  KiB each), sorted by `(country, wof_id)` with `sorting_columns` declared
   **[derived]**.
-- `wof_county_display.parquet` — 107.2 MB, the same rows at the same offsets,
+- `wof_county_display.parquet` — 107.2 MiB, the same rows at the same offsets,
   simplified and buffered outward **[derived]**.
-- `county.pmtiles` — 81.5 MB, layer `county`.
+- `county.pmtiles` — 83.6 MiB, layer `county`.
 - [geocode.earth's combined
   GeoParquet](https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet)
-  — 5.5 GB, all 21 placetypes, spatially clustered. Read this for a planet-wide
-  scan or a spatial query; **do not** read it to fetch one place, because its
-  geometry chunks are a median of 38 MiB and up to 285 MiB per row group
-  **[derived]**.
+  — 5.5 GiB, all 21 placetypes, spatially clustered. Read this for a
+  planet-wide scan or a spatial query; **do not** read it to fetch one place,
+  because its geometry chunks are a median of 38 MiB and up to 285 MiB per row
+  group **[derived]**.
 
 ## Schema & field notes
 
@@ -103,9 +103,12 @@ of them is any of those]**. Pelias's own active-record filter needs all four.
 If currency matters, read the [SQLite
 distribution](https://data.geocode.earth/wof/dist/sqlite/whosonfirst-data-admin-latest.db.bz2).
 
-**Area is reproducible, not official.** `area_km2` is `ST_Area_Spheroid` on the
-geometry in this file. For a place whose outline was carried up from a coarser
-source, that is not its surveyed area.
+**Area is reproducible, not official.** `area_km2` is pyproj's geodesic measure
+on the geometry in this file — not DuckDB's `ST_Area_Spheroid`, which returns
+NaN for a large minority of these geometries **[derived]**. For a place whose
+outline was carried up from a coarser source, it is not that place's surveyed
+area, and it measures land only, so a country comes out a little under its
+published figure.
 
 ## Example queries
 
@@ -134,16 +137,16 @@ FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/county/wof_c
 ORDER BY area_km2 DESC LIMIT 10;
 ```
 ```
-Coonamble  AUS  county  nan
-Camden  AUS  county  nan
-Western Downs  AUS  county  nan
-Rockdale  AUS  county  nan
-Moira  AUS  county  nan
-Muswellbrook  AUS  county  nan
-Mandurah  AUS  county  nan
-Joondalup  AUS  county  nan
-Mitchell  AUS  county  nan
-Torres Strait Island  AUS  county  nan
+Qikiqtaaluk  CAN  county  1,040,104
+Nord-du-Quebec  CAN  county  852,513
+Tajmyrskiy Dolgano-Neneckij  RUS  county  845,770
+Ehvenkijskiy  RUS  county  761,853
+Kivalliq  CAN  county  539,971
+Kitikmeot  CAN  county  502,618
+Yukon  CAN  county  483,867
+Bayinguoleng  CHN  county  470,233
+Kenora  CAN  county  444,785
+Al-Ahsa  SAU  county  412,083
 ```
 
 The country sort is what makes a country filter cheap: it prunes row groups
