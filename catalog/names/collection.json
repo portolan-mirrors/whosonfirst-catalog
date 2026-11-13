@@ -9,7 +9,7 @@
   ],
   "id": "names",
   "title": "Who's On First Gazetteer Name Index",
-  "description": "**The gazetteer index: a name search sidecar, not a boundary dataset.** 5,405,294 places plus 4,073,485 alternative spellings of their names, 9,478,779 rows in all, sorted by a folded form of the name so that a static client with no server can turn a typed name into a Who's On First identifier, a bounding box and a point.\n\n**The sort is the whole design.** Row group statistics on `name_norm` are tight, non-overlapping alphabetical ranges, the footer declares the sort, and the Parquet page index is written, so a typed prefix resolves from one or two row groups rather than a download. The manifest at [index.json](index.json) is about 7 KB and carries the index's exact size, row group count and checksum, the `catalog_version` the boundary files are pinned to, and the attribution a client has to show. Fetch it first.\n\nEvery row carries what a result list needs without a second fetch: the display spelling, the level, the country, the parent's name, the population where WOF has one, WOF's own `min_zoom` prominence signal, a bbox to fly to, a point to pin, and an advisory `geometry_ref` that turns the geometry fetch into a single range read.\n\n**Multilingual, within a limit worth knowing.** The alternative spellings come from the 25 language columns geocode.earth's GeoParquet build carries. Who's On First itself carries names in hundreds of languages — one San Francisco record has 214 `name:*` properties — but those live in the SQLite and GeoJSON distributions, so this index cannot be richer than 25 languages however multilingual WOF is. Both distributions are assets of this collection.\n\nThis is place-name lookup, not address geocoding. The [agent guide](AGENTS.md) has the prefix-lookup recipe and the join back to geometry.",
+  "description": "**The gazetteer index: a name search sidecar, not a boundary dataset.** 5,405,294 places plus 4,073,485 alternative spellings of their names, 9,478,779 rows in all, sorted by a folded form of the name so that a static client with no server can turn a typed name into a Who's On First identifier, a bounding box and a point.\n\n**The sort is the whole design.** Row group statistics on `name_norm` are tight, non-overlapping alphabetical ranges, the footer declares the sort, and the Parquet page index is written, so a typed prefix resolves from one or two row groups rather than a download. The manifest at [index.json](index.json) is about 9 KB and carries the index's exact size, row group count and checksum, the `catalog_version` the boundary files are pinned to, and the attribution a client has to show. Fetch it first.\n\nEvery row carries what a result list needs without a second fetch: the display spelling, the level, the country, the parent's name, the population where WOF has one, WOF's own `min_zoom` prominence signal, a bbox to fly to, a point to pin, and an advisory `geometry_ref` that turns the geometry fetch into a single range read.\n\n**Multilingual, within a limit worth knowing.** The alternative spellings come from the 25 language columns geocode.earth's GeoParquet build carries. Who's On First itself carries names in hundreds of languages — one San Francisco record has 214 `name:*` properties — but those live in the SQLite and GeoJSON distributions, so this index cannot be richer than 25 languages however multilingual WOF is. Both distributions are assets of this collection.\n\n**Two files, two load strategies.** Beside the full index sits a prominent subset — every country, region and county, the larger localadmins, cities from 50,000 people, and the English and major-language spellings of all of them — small enough for a client to fetch whole on focus and answer the first keystrokes from memory (including fuzzy typo matching) while the full index answers deep queries by range request. The manifest's `prominent_index.criteria` states exactly what is in and out.\n\nThis is place-name lookup, not address geocoding. The [agent guide](AGENTS.md) has the prefix-lookup recipe and the join back to geometry.",
   "license": "other",
   "keywords": [
     "gazetteer",
@@ -200,14 +200,26 @@
     },
     "manifest": {
       "href": "./index.json",
-      "file:size": 8167,
-      "file:checksum": "122030dadf1e9fada00739829da130e2ab89c4076e35ed8ee2fee26f42d3b35c6f32",
+      "file:size": 11748,
+      "file:checksum": "122044a915d1e44a73e7162911036a17d21902cbe720757c3c8582ff10c9b703709f",
       "type": "application/json",
       "title": "Index manifest: fetch this before the index",
       "roles": [
         "metadata"
       ],
       "description": "The index's size, row group count, checksum and footer size, every boundary file's URL and row count, the `catalog_version` all of them are pinned to, and the attribution a client must display."
+    },
+    "data-prominent": {
+      "href": "./wof_names_prominent.parquet",
+      "file:size": 21225495,
+      "file:checksum": "1220feddb32c907d9b433c6eb0be48a6cf8f2291af80ff439ad77dfe4d34daa5aee9",
+      "type": "application/vnd.apache.parquet",
+      "title": "Prominent subset for eager loading (285,735 rows, 140 row groups of 2048, same schema and sort as the full index)",
+      "roles": [
+        "data"
+      ],
+      "description": "A strict row subset of the full index: a hit found here resolves exactly as a hit found there. Small enough to fetch whole on search-box focus, which is what makes instant first keystrokes and typo-tolerant (fuzzy) search possible without a server. Selection criteria, measured and stated, are in the manifest under `prominent_index.criteria`.",
+      "table:primary_geometry": "geometry"
     },
     "pmtiles": {
       "href": "./names.pmtiles",

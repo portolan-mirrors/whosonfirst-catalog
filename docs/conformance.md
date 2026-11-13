@@ -66,6 +66,28 @@ SpatiaLite and the GeoJSON bundle — does carry both, taken from that same
 inventory, because those files are rebuilt under a new entry rather than
 amended in place.
 
+### PTL-DAT-001 on every pinned upstream asset (upstream drift, found 2026-11-13)
+
+`portolan check` downloads each upstream asset and reports that its bytes no
+longer match the pinned `file:checksum`. The pins are correct and the bytes
+have moved: geocode.earth publishes every distribution file under a `-latest`
+name and overwrites it in place, and the upstream has rebuilt since the
+2025-04-07 build this mirror's data, documentation and measurements all come
+from. Recomputing the checksums (what the warning's auto-fix tries) would
+re-pin the metadata to bytes this catalog was *not* built from — a false
+claim of vintage — so the pins stay until the mirror itself is rebuilt from
+a newer upstream, at which point `tools/fetch_sources.py` onward regenerate
+everything and the pins move together. The vintage story (inventory.json is
+authoritative; HTTP Last-Modified is not) is in the index manifest's notes
+and `tools/wofcommon.py`.
+
+### PTL-PRO-002 on every collection
+
+"Add a `rel='canonical'` link to the upstream STAC object, when the source
+publishes one." geocode.earth publishes no STAC; the upstream is a download
+page plus per-format inventory.json files, both already linked as assets.
+There is no canonical STAC object to link.
+
 ## Validator workarounds
 
 ### stac-check reports a dialect crash on every collection

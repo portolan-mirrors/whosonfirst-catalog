@@ -25,7 +25,8 @@ distribution holds no street or house number.
 
 ```
 names/wof_names.parquet  575.9 MiB, 9,478,779 rows, 741 row groups of 12,800
-names/index.json  8,167 bytes, the manifest to fetch first
+names/index.json  11,748 bytes, the manifest to fetch first
+names/wof_names_prominent.parquet  20.2 MiB, 285,735 rows, the prominent subset to load eagerly
 names/names.pmtiles  173.9 MiB, zoom 0-8, layer "names"
 ```
 
@@ -50,6 +51,15 @@ A browser client reads it with
 [hyparquet](https://github.com/hyparam/hyparquet) plus
 [hyparquet-compressors](https://github.com/hyparam/hyparquet-compressors). The
 compressors package is **required**: every column chunk is zstd.
+
+**Or load the prominent subset whole.** `names/wof_names_prominent.parquet`
+(20.2 MiB, 285,735 rows) is a strict row subset of the full index in the same
+schema and sort: every country, region and county, the larger localadmins,
+cities from 50,000 people, and the English and major-language spellings of all
+of them. A client that fetches it on search-box focus answers first keystrokes
+from memory — including fuzzy, typo-tolerant matching, which range requests
+cannot do — while deep queries fall through to the full index. The manifest's
+`prominent_index.criteria` states exactly what is in and out, and why.
 
 ## What is in it
 

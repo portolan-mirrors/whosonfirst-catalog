@@ -127,11 +127,10 @@ STATISTICS_COLUMNS = ["name_norm", "level", "country", "feature_id"]
 # first thing fetched and the last thing read, so the caveats belong in it and
 # not only in a README nobody downloads.
 NOTES = (
-    "LIVE catalog, not provisional, but nothing has been published to the "
-    "bucket yet at the time this manifest was written. "
+    "LIVE catalog, published to the bucket on 2026-11-13. "
     "`catalog_version` is pinned in three places and all three agree: this "
     "manifest, the index parquet's `cnmw:catalog_version` footer key, and "
-    "every boundary and display file's footer -- 11 files in all, asserted by "
+    "every boundary and display file's footer -- 12 files in all, the prominent index included, asserted by "
     "tests/test_index_refs.py. It names the date geocode.earth built the "
     "GeoParquet (2025-04-07), from that file's own inventory entry, not the "
     "HTTP Last-Modified header, which reads 2025-10-30 on every object "
@@ -613,7 +612,7 @@ def manifest(index: dict, counts: dict) -> dict:
         boundaries.append(entry)
 
     footer, page_index = footer_bytes(NAMES_PATH)
-    return {
+    doc = {
         "spec": "cnmw-index/1.0",
         "source": SOURCE_NAME,
         "index_version": f"{EXTRACTION_DATE}T00:00:00Z",
@@ -648,6 +647,15 @@ def manifest(index: dict, counts: dict) -> dict:
         "build": {"pycountry": pycountry_version()},
         "notes": NOTES,
     }
+    # The prominent index is built by tools/build_prominent.py after this
+    # stage; a full rebuild that has not run it yet simply publishes no
+    # `prominent_index` key, which the client treats as a complete no-op.
+    # When the file is present, its manifest entry is composed by the tool
+    # that owns its policy, so the two can never drift.
+    from build_prominent import OUT as PROMINENT_PATH, prominent_manifest_entry
+    if PROMINENT_PATH.exists():
+        doc["prominent_index"] = prominent_manifest_entry()
+    return doc
 
 
 def footer_bytes(path: Path) -> tuple[int, int]:

@@ -37,8 +37,18 @@ name. Public root:
 
 ```
 names/wof_names.parquet  575.9 MiB, 9,478,779 rows, 741 row groups of 12,800
-names/index.json  8,167 bytes, fetch first
+names/index.json  11,748 bytes, fetch first
+names/wof_names_prominent.parquet  20.2 MiB, 285,735 rows, strict subset, load eagerly for instant + fuzzy search
 ```
+
+**The prominent subset** **[derived]** is a strict row subset of the full index
+(same schema, same `name_norm` sort, same `feature_id` and `geometry_ref`
+values), selected by the measured criteria in the manifest's
+`prominent_index.criteria` — including the english_guarantee: every place kept
+is findable by its English spelling where the distribution carries one. Load it
+whole on search-box focus; it is the only file a client's fuzzy (typo) fallback
+can scan without downloading the full index, so a name absent here is
+prefix-searchable but not typo-findable in range mode.
 
 The `geometry` column is **one point per row**, the place's centroid. It is a
 marker, not a shape: do not compute area, length or containment from this file.

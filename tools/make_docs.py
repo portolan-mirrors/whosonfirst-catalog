@@ -589,6 +589,19 @@ def boundary_agents(con, collection: str, facts: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _prominent_facts(manifest: dict) -> dict:
+    entry = manifest.get("prominent_index")
+    if not entry:
+        return {}
+    return {
+        "prominent_name": entry["url"].lstrip("./"),
+        "prominent_size": entry["size"],
+        "prominent_rows": entry["row_count"],
+        "prominent_groups": entry["row_groups"],
+        "prominent_group_rows": entry["row_group_rows"],
+    }
+
+
 def names_facts(con) -> dict:
     md = pq.ParquetFile(NAMES_PATH).metadata
     manifest = json.loads((CATALOG / "names" / "index.json").read_text())
@@ -604,6 +617,7 @@ def names_facts(con) -> dict:
         "alt": manifest["alt_rows"],
         "dropped_unnamed": manifest["dropped_unnamed"],
         "manifest_bytes": (CATALOG / "names" / "index.json").stat().st_size,
+        **_prominent_facts(manifest),
     }
     facts["by_level"] = con.execute(
         f"""SELECT level, count(*), count(*) FILTER (alt_of IS NULL),
@@ -655,6 +669,13 @@ def names_readme(con, facts: dict) -> str:
         f"names/index.json  {facts['manifest_bytes']:,} bytes, the manifest "
         "to fetch first",
     ]
+    if "prominent_size" in facts:
+        lines.append(
+            f"names/{facts['prominent_name']}  "
+            f"{human(facts['prominent_size'])}, "
+            f"{facts['prominent_rows']:,} rows, the prominent subset to "
+            "load eagerly"
+        )
     if "pmtiles_size" in facts:
         lines.append(
             f"names/names.pmtiles  {human(facts['pmtiles_size'])}, "
@@ -686,6 +707,22 @@ def names_readme(con, facts: dict) -> str:
         "[hyparquet](https://github.com/hyparam/hyparquet) plus "
         "[hyparquet-compressors](https://github.com/hyparam/hyparquet-compressors). "
         "The compressors package is **required**: every column chunk is zstd.",
+        "",
+        (
+            f"**Or load the prominent subset whole.** "
+            f"`names/{facts.get('prominent_name', '')}` "
+            f"({human(facts.get('prominent_size', 0))}, "
+            f"{facts.get('prominent_rows', 0):,} rows) is a strict row "
+            "subset of the full index in the same schema and sort: every "
+            "country, region and county, the larger localadmins, cities "
+            "from 50,000 people, and the English and major-language "
+            "spellings of all of them. A client that fetches it on "
+            "search-box focus answers first keystrokes from memory — "
+            "including fuzzy, typo-tolerant matching, which range requests "
+            "cannot do — while deep queries fall through to the full "
+            "index. The manifest's `prominent_index.criteria` states "
+            "exactly what is in and out, and why."
+        ) if "prominent_size" in facts else "",
         "",
         "## What is in it",
         "",
@@ -909,7 +946,29 @@ def names_agents(con, facts: dict) -> str:
         f"{facts['rows']:,} rows, {facts['row_groups']:,} row groups of "
         f"{facts['group_rows']:,}",
         f"names/index.json  {facts['manifest_bytes']:,} bytes, fetch first",
+    ]
+    if "prominent_size" in facts:
+        lines.append(
+            f"names/{facts['prominent_name']}  "
+            f"{human(facts['prominent_size'])}, "
+            f"{facts['prominent_rows']:,} rows, strict subset, load "
+            "eagerly for instant + fuzzy search"
+        )
+    lines += [
         "```",
+        "",
+        (
+            "**The prominent subset** **[derived]** is a strict row subset "
+            "of the full index (same schema, same `name_norm` sort, same "
+            "`feature_id` and `geometry_ref` values), selected by the "
+            "measured criteria in the manifest's `prominent_index.criteria` "
+            "— including the english_guarantee: every place kept is "
+            "findable by its English spelling where the distribution "
+            "carries one. Load it whole on search-box focus; it is the "
+            "only file a client's fuzzy (typo) fallback can scan without "
+            "downloading the full index, so a name absent here is "
+            "prefix-searchable but not typo-findable in range mode."
+        ) if "prominent_size" in facts else "",
         "",
         "The `geometry` column is **one point per row**, the place's "
         "centroid. It is a marker, not a shape: do not compute area, length "

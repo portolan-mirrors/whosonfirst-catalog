@@ -197,5 +197,98 @@
   "build": {
     "pycountry": "26.2.16"
   },
-  "notes": "LIVE catalog, not provisional, but nothing has been published to the bucket yet at the time this manifest was written. `catalog_version` is pinned in three places and all three agree: this manifest, the index parquet's `cnmw:catalog_version` footer key, and every boundary and display file's footer -- 11 files in all, asserted by tests/test_index_refs.py. It names the date geocode.earth built the GeoParquet (2025-04-07), from that file's own inventory entry, not the HTTP Last-Modified header, which reads 2025-10-30 on every object because the bucket was re-copied then. The SQLite, SpatiaLite, GeoJSON-bundle and PMTiles builds of the same upstream repository are six months newer and come from a different WOF tree, so a count from this index and a count from those is two vintages, not a discrepancy. `level` is this catalog's mapping of Who's On First placetypes onto a 0-based ladder; WOF publishes no level number. `level_names` gives the placetypes at each rung, and a rung is a tier: it can hold a unit and its own subdivision, because WOF files `macroregion` above `region`, `borough` below `locality` and `microhood` below `neighbourhood`. `country` is ISO 3166-1 alpha-3 derived from WOF's two-letter code through pycountry; WOF mints six codes of its own (XK, XN, XS, XX, XY, XZ) that have no alpha-3 and appear as the two-letter code. `name_lang` is an ISO 639-3 code from the 25 fixed language columns geocode.earth's GeoParquet build carries -- Who's On First itself carries names in hundreds of languages, and they are in the SQLite and GeoJSON distributions, not here. The primary `name` is NOT always English despite WOF documenting `wof:name` as \"English by default\": the primary name of Kyoto Prefecture (feature_id 85672777) is Arabic, and its Latin spellings are alternative-spelling rows. `name_norm` strips every Unicode mark category (Mn, Mc and Me), as the index contract's \\p{M} requires, so an Indic name folds to its consonant skeleton; a client must apply exactly the same fold to the user's keystrokes or the binary search misses for those scripts. `population` is INT64, so a JavaScript reader gets a BigInt and must coerce before comparing it with a number. Levels 4 and 5 have no `display` entry on purpose: their median feature is a single point and 84% of their features are points, so there is nothing to simplify and a second file would only add a fetch; `is_point` on every index row says which. `geometry_ref` is advisory: a client reads the referenced row group, decodes the row, and MUST verify that row's `wof_id` equals the result's `feature_id` before trusting its geometry, falling back to locating the row by `wof_id` on any mismatch -- the boundary files are sorted by (country, wof_id) with the sort declared, so that fallback is cheap. The display companion holds the same rows at the same offsets, so one pointer resolves against either file. The index carries no `area_km2`; `population` and WOF's own `min_zoom` label-importance signal are the ranking columns, and `area_km2` is in the boundary collections. Nothing in this catalog says whether a place still exists: mz:is_current, edtf:cessation, edtf:deprecated and wof:superseded_by are not carried by the GeoParquet distribution. See the catalog's names/AGENTS.md and changes-from-upstream.md for the measurements behind all of this."
+  "notes": "LIVE catalog, published to the bucket on 2026-11-13. `catalog_version` is pinned in three places and all three agree: this manifest, the index parquet's `cnmw:catalog_version` footer key, and every boundary and display file's footer -- 12 files in all, the prominent index included, asserted by tests/test_index_refs.py. It names the date geocode.earth built the GeoParquet (2025-04-07), from that file's own inventory entry, not the HTTP Last-Modified header, which reads 2025-10-30 on every object because the bucket was re-copied then. The SQLite, SpatiaLite, GeoJSON-bundle and PMTiles builds of the same upstream repository are six months newer and come from a different WOF tree, so a count from this index and a count from those is two vintages, not a discrepancy. `level` is this catalog's mapping of Who's On First placetypes onto a 0-based ladder; WOF publishes no level number. `level_names` gives the placetypes at each rung, and a rung is a tier: it can hold a unit and its own subdivision, because WOF files `macroregion` above `region`, `borough` below `locality` and `microhood` below `neighbourhood`. `country` is ISO 3166-1 alpha-3 derived from WOF's two-letter code through pycountry; WOF mints six codes of its own (XK, XN, XS, XX, XY, XZ) that have no alpha-3 and appear as the two-letter code. `name_lang` is an ISO 639-3 code from the 25 fixed language columns geocode.earth's GeoParquet build carries -- Who's On First itself carries names in hundreds of languages, and they are in the SQLite and GeoJSON distributions, not here. The primary `name` is NOT always English despite WOF documenting `wof:name` as \"English by default\": the primary name of Kyoto Prefecture (feature_id 85672777) is Arabic, and its Latin spellings are alternative-spelling rows. `name_norm` strips every Unicode mark category (Mn, Mc and Me), as the index contract's \\p{M} requires, so an Indic name folds to its consonant skeleton; a client must apply exactly the same fold to the user's keystrokes or the binary search misses for those scripts. `population` is INT64, so a JavaScript reader gets a BigInt and must coerce before comparing it with a number. Levels 4 and 5 have no `display` entry on purpose: their median feature is a single point and 84% of their features are points, so there is nothing to simplify and a second file would only add a fetch; `is_point` on every index row says which. `geometry_ref` is advisory: a client reads the referenced row group, decodes the row, and MUST verify that row's `wof_id` equals the result's `feature_id` before trusting its geometry, falling back to locating the row by `wof_id` on any mismatch -- the boundary files are sorted by (country, wof_id) with the sort declared, so that fallback is cheap. The display companion holds the same rows at the same offsets, so one pointer resolves against either file. The index carries no `area_km2`; `population` and WOF's own `min_zoom` label-importance signal are the ranking columns, and `area_km2` is in the boundary collections. Nothing in this catalog says whether a place still exists: mz:is_current, edtf:cessation, edtf:deprecated and wof:superseded_by are not carried by the GeoParquet distribution. See the catalog's names/AGENTS.md and changes-from-upstream.md for the measurements behind all of this.",
+  "prominent_index": {
+    "url": "./wof_names_prominent.parquet",
+    "size": 21225495,
+    "row_count": 285735,
+    "row_groups": 140,
+    "footer_bytes": 387048,
+    "footer_metadata_bytes": 310266,
+    "checksum": "1220feddb32c907d9b433c6eb0be48a6cf8f2291af80ff439ad77dfe4d34daa5aee9",
+    "row_group_rows": 2048,
+    "sorted_by": [
+      "name_norm",
+      "level",
+      "country",
+      "feature_id"
+    ],
+    "of": "./wof_names.parquet",
+    "load": "eager",
+    "rows_per_level": {
+      "0": {
+        "rows": 6359,
+        "primary_rows": 353,
+        "alt_rows": 6006
+      },
+      "1": {
+        "rows": 48871,
+        "primary_rows": 4362,
+        "alt_rows": 44509
+      },
+      "2": {
+        "rows": 52357,
+        "primary_rows": 42115,
+        "alt_rows": 10242
+      },
+      "3": {
+        "rows": 97158,
+        "primary_rows": 94102,
+        "alt_rows": 3056
+      },
+      "4": {
+        "rows": 77862,
+        "primary_rows": 32509,
+        "alt_rows": 45353
+      },
+      "5": {
+        "rows": 3128,
+        "primary_rows": 550,
+        "alt_rows": 2578
+      }
+    },
+    "criteria": {
+      "signal_columns": [
+        "min_zoom",
+        "population"
+      ],
+      "primary": {
+        "0": "all",
+        "1": "all",
+        "2": "all",
+        "3": {
+          "min_zoom_max": 12.0,
+          "population_min": 25000
+        },
+        "4": {
+          "min_zoom_max": 10.0,
+          "population_min": 50000
+        },
+        "5": {
+          "min_zoom_max": 10.0,
+          "population_min": 100000
+        }
+      },
+      "alt": {
+        "0": "all",
+        "1": {
+          "min_zoom_max": 8.0,
+          "population_min": 500000
+        },
+        "2": "none",
+        "3": "none",
+        "4": {
+          "min_zoom_max": 6.0,
+          "population_min": 200000
+        },
+        "5": {
+          "min_zoom_max": 10.0,
+          "population_min": 100000
+        }
+      },
+      "english_guarantee": "alternative-name rows with name_lang 'eng' are admitted by the level's primary rule as well as its alt rule",
+      "description": "A strict row subset of the full index, in the same schema and the same byte-wise name_norm sort, so a hit found here resolves its geometry exactly as a hit found there: same feature_id, same geometry_ref. Per level, a rule admits primary rows and a separate rule admits alternative-name rows; a rule is 'all', 'none', or a pair admitting a row when min_zoom <= min_zoom_max OR population >= population_min. A row carrying neither signal fails a pair rule however important the place: this is a recall boundary, not a judgment, and the full index is what makes every omission recoverable. Alternative-name rows are load-bearing, not garnish: this distribution's primary names are in no particular language (Contra Costa County's primary row is Arabic, Baghdad's too), so English alternative-name rows additionally follow each level's PRIMARY rule -- the 'english_guarantee' -- meaning every place kept here is findable by its English name where the distribution carries one. min_zoom is Who's On First's per-placetype label hint, not a global ranking (counties cluster at exactly 6.0), so every rule is per-level and population backs the zoom arm up. See tools/build_prominent.py for the measured grid behind each number.",
+      "fallback": "Any query this subset cannot answer -- a name excluded by the rules above, or any query needing completeness -- is answered by the full index at ./wof_names.parquet via range requests; clients that load this file eagerly run both waves and merge."
+    }
+  }
 }

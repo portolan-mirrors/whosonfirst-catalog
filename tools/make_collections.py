@@ -581,6 +581,14 @@ def names_collection() -> dict:
         "GeoJSON distributions, so this index cannot be richer than "
         f"{len(NAME_LANGS)} languages however multilingual WOF is. Both "
         "distributions are assets of this collection.\n\n"
+        "**Two files, two load strategies.** Beside the full index sits a "
+        "prominent subset — every country, region and county, the larger "
+        "localadmins, cities from 50,000 people, and the English and "
+        "major-language spellings of all of them — small enough for a "
+        "client to fetch whole on focus and answer the first keystrokes "
+        "from memory (including fuzzy typo matching) while the full index "
+        "answers deep queries by range request. The manifest's "
+        "`prominent_index.criteria` states exactly what is in and out.\n\n"
         "This is place-name lookup, not address geocoding. The "
         "[agent guide](AGENTS.md) has the prefix-lookup recipe and the join "
         "back to geometry."
@@ -616,6 +624,30 @@ def names_collection() -> dict:
             ),
         ),
     }
+    prominent = NAMES_PATH.parent / "wof_names_prominent.parquet"
+    if prominent.exists() and "prominent_index" in manifest:
+        pmd = pq.ParquetFile(prominent).metadata
+        assets["data-prominent"] = file_asset(
+            prominent, f"./{prominent.name}",
+            type="application/vnd.apache.parquet",
+            title=(
+                f"Prominent subset for eager loading ({pmd.num_rows:,} rows, "
+                f"{pmd.num_row_groups:,} row groups of "
+                f"{manifest['prominent_index']['row_group_rows']}, same "
+                "schema and sort as the full index)"
+            ),
+            roles=["data"],
+            description=(
+                "A strict row subset of the full index: a hit found here "
+                "resolves exactly as a hit found there. Small enough to "
+                "fetch whole on search-box focus, which is what makes "
+                "instant first keystrokes and typo-tolerant (fuzzy) search "
+                "possible without a server. Selection criteria, measured "
+                "and stated, are in the manifest under "
+                "`prominent_index.criteria`."
+            ),
+            **{"table:primary_geometry": "geometry"},
+        )
     pm = pmtiles_path("names")
     if pm.exists():
         assets["pmtiles"] = file_asset(

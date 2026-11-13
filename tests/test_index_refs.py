@@ -91,6 +91,10 @@ def main() -> int:
 
     # 4. The version pin, in every file the manifest names.
     paths = [NAMES_PATH]
+    if "prominent_index" in manifest:
+        paths.append(
+            (PUBLISH / "names" / manifest["prominent_index"]["url"]).resolve()
+        )
     for entry in manifest["boundaries"]:
         for role in ("full", "display"):
             if role in entry:
