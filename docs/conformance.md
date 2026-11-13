@@ -88,6 +88,21 @@ publishes one." geocode.earth publishes no STAC; the upstream is a download
 page plus per-format inventory.json files, both already linked as assets.
 There is no canonical STAC object to link.
 
+### PTL-LIV-004 / PTL-LIV-005 on host data.geocode.earth
+
+The `--live` probe reports that geocode.earth's host omits the range-read
+headers from `Access-Control-Expose-Headers` and fails CORS preflight (403,
+no `Range` in allowed request headers). These are the upstream host's server
+settings, not this catalog's. They mean a *browser* cannot range-read the
+upstream distribution files directly — which is one of the reasons this
+mirror exists: every asset a browser client needs (the name indexes and the
+boundary parquets) is served from data.source.coop, which passes the same
+probes. The upstream links remain for provenance and for non-browser
+clients. Final live tally after the 2026-11-13 prominent-index publish:
+2 errors (both these host settings), 28 warnings (all the accepted
+PTL-AST-003 class above), 7 advisory PTL-PRO-002 items (no upstream STAC
+object exists to link).
+
 ## Validator workarounds
 
 ### stac-check reports a dialect crash on every collection
