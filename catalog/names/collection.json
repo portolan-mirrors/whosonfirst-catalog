@@ -5,7 +5,10 @@
     "https://schemas.portolan-sdi.org/portolan/v0.2.0/schema.json",
     "https://stac-extensions.github.io/table/v1.2.0/schema.json",
     "https://stac-extensions.github.io/file/v2.1.0/schema.json",
-    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json",
+    "https://stac-extensions.github.io/scientific/v1.0.0/schema.json",
+    "https://cholmes.github.io/stac-gazetteer/gazetteer/v1.0.0/schema.json",
+    "https://cholmes.github.io/stac-gazetteer/gazetteer-boundaries/v1.0.0/schema.json"
   ],
   "id": "names",
   "title": "Who's On First Gazetteer Name Index",
@@ -185,6 +188,24 @@
       ]
     }
   ],
+  "sci:citation": "Data from Who's On First. License: https://whosonfirst.org/docs/licenses/",
+  "gazetteer:levels": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "gazetteer:normalization": "nfd-strip-marks-lower/1",
+  "gazetteer:sort": [
+    "name_norm",
+    "level",
+    "country",
+    "feature_id"
+  ],
+  "gazetteer:dropped_unnamed": 0,
+  "gazetteer:stats_truncated": false,
   "assets": {
     "data": {
       "href": "./wof_names.parquet",
@@ -193,15 +214,20 @@
       "type": "application/vnd.apache.parquet",
       "title": "Who's On First Gazetteer Name Index, GeoParquet 1.1 (741 row groups of 12800, zstd, page index, sorted by name_norm)",
       "roles": [
-        "data"
+        "data",
+        "gazetteer-index"
       ],
       "description": "One row per place plus one per distinct alternative spelling. The geometry column is one point per row, from the place's centroid: a marker, not a shape.",
-      "table:primary_geometry": "geometry"
+      "table:primary_geometry": "geometry",
+      "table:row_count": 9478779,
+      "gazetteer:row_groups": 741,
+      "gazetteer:row_group_rows": 12800,
+      "gazetteer:feature_id_column": "feature_id"
     },
     "manifest": {
       "href": "./index.json",
-      "file:size": 11748,
-      "file:checksum": "122044a915d1e44a73e7162911036a17d21902cbe720757c3c8582ff10c9b703709f",
+      "file:size": 11712,
+      "file:checksum": "12208f5812118fd844cf6ac4c5e85e55ff6ddd88ccca23a72e34fe2f3be00984cf71",
       "type": "application/json",
       "title": "Index manifest: fetch this before the index",
       "roles": [
@@ -216,10 +242,17 @@
       "type": "application/vnd.apache.parquet",
       "title": "Prominent subset for eager loading (285,735 rows, 140 row groups of 2048, same schema and sort as the full index)",
       "roles": [
-        "data"
+        "data",
+        "gazetteer-index",
+        "prominent"
       ],
       "description": "A strict row subset of the full index: a hit found here resolves exactly as a hit found there. Small enough to fetch whole on search-box focus, which is what makes instant first keystrokes and typo-tolerant (fuzzy) search possible without a server. Selection criteria, measured and stated, are in the manifest under `prominent_index.criteria`.",
-      "table:primary_geometry": "geometry"
+      "table:primary_geometry": "geometry",
+      "table:row_count": 285735,
+      "gazetteer:row_groups": 140,
+      "gazetteer:row_group_rows": 2048,
+      "gazetteer:feature_id_column": "feature_id",
+      "gazetteer:footer_metadata_bytes": 310266
     },
     "pmtiles": {
       "href": "./names.pmtiles",
@@ -234,6 +267,180 @@
       "pmtiles:layers": [
         "names"
       ]
+    },
+    "boundaries-country-full": {
+      "href": "../country/wof_country.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Countries, Dependencies and Disputed Areas, boundaries (full)",
+      "roles": [
+        "gazetteer-boundaries"
+      ],
+      "file:size": 64544703,
+      "table:row_count": 353,
+      "gazetteer:level": 0,
+      "gazetteer:variant": "full",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 4,
+      "gazetteer:row_groups": 89
+    },
+    "boundaries-country-display": {
+      "href": "../country/wof_country_display.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Countries, Dependencies and Disputed Areas, boundaries (display)",
+      "roles": [
+        "gazetteer-boundaries",
+        "overview"
+      ],
+      "file:size": 5373892,
+      "table:row_count": 353,
+      "gazetteer:level": 0,
+      "gazetteer:variant": "display",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 4,
+      "gazetteer:row_groups": 89
+    },
+    "boundaries-region-full": {
+      "href": "../region/wof_region.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Regions and Macroregions, boundaries (full)",
+      "roles": [
+        "gazetteer-boundaries"
+      ],
+      "file:size": 222431102,
+      "table:row_count": 4362,
+      "gazetteer:level": 1,
+      "gazetteer:variant": "full",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 16,
+      "gazetteer:row_groups": 273
+    },
+    "boundaries-region-display": {
+      "href": "../region/wof_region_display.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Regions and Macroregions, boundaries (display)",
+      "roles": [
+        "gazetteer-boundaries",
+        "overview"
+      ],
+      "file:size": 22883661,
+      "table:row_count": 4362,
+      "gazetteer:level": 1,
+      "gazetteer:variant": "display",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 16,
+      "gazetteer:row_groups": 273
+    },
+    "boundaries-county-full": {
+      "href": "../county/wof_county.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Counties and Macrocounties, boundaries (full)",
+      "roles": [
+        "gazetteer-boundaries"
+      ],
+      "file:size": 529822704,
+      "table:row_count": 42115,
+      "gazetteer:level": 2,
+      "gazetteer:variant": "full",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 64,
+      "gazetteer:row_groups": 659
+    },
+    "boundaries-county-display": {
+      "href": "../county/wof_county_display.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Counties and Macrocounties, boundaries (display)",
+      "roles": [
+        "gazetteer-boundaries",
+        "overview"
+      ],
+      "file:size": 112397378,
+      "table:row_count": 42115,
+      "gazetteer:level": 2,
+      "gazetteer:variant": "display",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 64,
+      "gazetteer:row_groups": 659
+    },
+    "boundaries-localadmin-full": {
+      "href": "../localadmin/wof_localadmin.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Local Administrative Units, boundaries (full)",
+      "roles": [
+        "gazetteer-boundaries"
+      ],
+      "file:size": 882050556,
+      "table:row_count": 164756,
+      "gazetteer:level": 3,
+      "gazetteer:variant": "full",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 256,
+      "gazetteer:row_groups": 644
+    },
+    "boundaries-localadmin-display": {
+      "href": "../localadmin/wof_localadmin_display.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Local Administrative Units, boundaries (display)",
+      "roles": [
+        "gazetteer-boundaries",
+        "overview"
+      ],
+      "file:size": 230549995,
+      "table:row_count": 164756,
+      "gazetteer:level": 3,
+      "gazetteer:variant": "display",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 256,
+      "gazetteer:row_groups": 644
+    },
+    "boundaries-locality-full": {
+      "href": "../locality/wof_locality.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Localities and Boroughs, boundaries (full)",
+      "roles": [
+        "gazetteer-boundaries"
+      ],
+      "file:size": 1540957033,
+      "table:row_count": 4796292,
+      "gazetteer:level": 4,
+      "gazetteer:variant": "full",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 2048,
+      "gazetteer:row_groups": 2342
+    },
+    "boundaries-neighbourhood-full": {
+      "href": "../neighbourhood/wof_neighbourhood.parquet",
+      "type": "application/vnd.apache.parquet",
+      "title": "Who's On First Neighbourhoods, Macrohoods and Microhoods, boundaries (full)",
+      "roles": [
+        "gazetteer-boundaries"
+      ],
+      "file:size": 107630840,
+      "table:row_count": 397416,
+      "gazetteer:level": 5,
+      "gazetteer:variant": "full",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 4096,
+      "gazetteer:row_groups": 98
     },
     "upstream-geoparquet": {
       "href": "https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet",

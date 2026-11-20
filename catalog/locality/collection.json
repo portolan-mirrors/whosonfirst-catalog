@@ -5,7 +5,8 @@
     "https://schemas.portolan-sdi.org/portolan/v0.2.0/schema.json",
     "https://stac-extensions.github.io/table/v1.2.0/schema.json",
     "https://stac-extensions.github.io/file/v2.1.0/schema.json",
-    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json",
+    "https://cholmes.github.io/stac-gazetteer/gazetteer-boundaries/v1.0.0/schema.json"
   ],
   "id": "locality",
   "title": "Who's On First Localities and Boroughs",
@@ -193,10 +194,18 @@
       "type": "application/vnd.apache.parquet",
       "title": "Who's On First Localities and Boroughs, full-resolution GeoParquet 1.1 (2,342 row groups of 2048, zstd, page index, sorted by country and wof_id)",
       "roles": [
-        "data"
+        "data",
+        "gazetteer-boundaries"
       ],
       "description": "Read this to clip, measure, export or analyse one place or a few. One row group is 642.5 KiB, against a median of 38 MiB from the upstream combined file. The geometry is byte-identical to upstream except for the rows `geometry_repaired` flags.",
-      "table:primary_geometry": "geometry"
+      "table:primary_geometry": "geometry",
+      "gazetteer:level": 4,
+      "gazetteer:variant": "full",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 2048,
+      "gazetteer:row_groups": 2342
     },
     "pmtiles": {
       "href": "./locality.pmtiles",
