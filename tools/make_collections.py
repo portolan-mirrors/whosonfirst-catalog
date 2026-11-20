@@ -71,6 +71,64 @@ EXTENSIONS = [
     "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json",
 ]
 
+# The gazetteer extensions (cholmes.github.io/stac-gazetteer; design doc /
+# docs/design/widgets-architecture.md in cng-map-widgets). Published and
+# authoritative at these URLs.
+GAZETTEER_SCHEMA = "https://cholmes.github.io/stac-gazetteer/gazetteer/v1.0.0/schema.json"
+GAZETTEER_BOUNDARIES_SCHEMA = (
+    "https://cholmes.github.io/stac-gazetteer/gazetteer-boundaries/v1.0.0/schema.json"
+)
+SCIENTIFIC_SCHEMA = "https://stac-extensions.github.io/scientific/v1.0.0/schema.json"
+
+NAMES_MANIFEST = CATALOG / "names" / "index.json"
+
+
+def load_names_manifest() -> dict | None:
+    """The hand-maintained geocoder index manifest (cnmw-index/1.0).
+
+    This script never writes it -- tools/build_names.py does, from the built
+    files -- but the gazetteer/gazetteer-boundaries extension fields below
+    are sourced from it rather than recomputed, so a manifest edit and a
+    collection rebuild never disagree about a row group count or a join
+    column.
+    """
+    if not NAMES_MANIFEST.exists():
+        return None
+    return json.loads(NAMES_MANIFEST.read_text())
+
+
+def gazetteer_boundary_fields(level: int, variant: str, entry: dict) -> dict:
+    """The ``gazetteer:*`` fields for one boundary file, sourced from the manifest.
+
+    ``entry`` is one ``boundaries[]`` element of ``catalog/names/index.json``;
+    ``variant`` is ``"full"`` or ``"display"``. Shared by both call sites: a
+    boundary collection's own `data`/`display` asset, and the names
+    collection's inline ``boundaries-{collection}-{variant}`` asset.
+
+    Unlike the geoBoundaries manifest this one does not record
+    `footer_metadata_bytes` on any boundary file (full or display, any
+    level), so that field is only added when present -- never guessed or
+    recomputed here. Likewise `index_key_column` is absent for every WOF
+    level (every level has a real `wof_id` join column), so it is added only
+    when the manifest actually has one.
+    """
+    file_info = entry[variant]
+    fields = {
+        "gazetteer:level": level,
+        "gazetteer:variant": variant,
+        "gazetteer:geometry_column": entry["geometry_column"],
+        "gazetteer:feature_id_column": entry["feature_id_column"],
+        "gazetteer:country_column": entry["country_column"],
+        "gazetteer:row_group_rows": entry["row_group_rows"],
+        "gazetteer:row_groups": file_info["row_groups"],
+    }
+    if "footer_metadata_bytes" in file_info:
+        fields["gazetteer:footer_metadata_bytes"] = file_info["footer_metadata_bytes"]
+    if "index_key_column" in entry:
+        fields["gazetteer:index_key_column"] = entry["index_key_column"]
+    return fields
+
+
 CATALOG_TITLE = "Who's On First: a Cloud-Native Gazetteer"
 
 TITLES = {
@@ -532,7 +590,20 @@ def boundary_collection(collection: str) -> dict:
     assets.update(style_assets(collection))
     assets.update(thumbnail_asset(collection, title))
 
+    # Wire up the gazetteer-boundaries STAC extension (cholmes.github.io/
+    # stac-gazetteer), sourced from catalog/names/index.json so the
+    # extension fields and the manifest can never disagree.
+    manifest = load_names_manifest()
+    if manifest is not None:
+        entry = next(b for b in manifest["boundaries"] if b["level"] == level)
+        for variant, key in (("full", "data"), ("display", "display")):
+            if key not in assets or variant not in entry:
+                continue
+            assets[key]["roles"] = assets[key]["roles"] + ["gazetteer-boundaries"]
+            assets[key].update(gazetteer_boundary_fields(level, variant, entry))
+
     doc = base(collection, title, description, bbox, md.num_rows, [])
+    doc["stac_extensions"] = doc["stac_extensions"] + [GAZETTEER_BOUNDARIES_SCHEMA]
     doc["assets"] = assets
     doc["table:columns"] = as_table_columns(
         [c for c in BOUNDARY_COLUMNS if c[0] in present_columns(full)]
@@ -549,7 +620,7 @@ def names_collection() -> dict:
     md = pq.ParquetFile(NAMES_PATH).metadata
     bbox = extent(NAMES_PATH)
     title = TITLES["names"]
-    manifest = json.loads((CATALOG / "names" / "index.json").read_text())
+    manifest = load_names_manifest()
 
     description = (
         "**The gazetteer index: a name search sidecar, not a boundary "
@@ -603,13 +674,29 @@ def names_collection() -> dict:
                 f"of {manifest['index']['row_group_rows']}, zstd, page index, "
                 "sorted by name_norm)"
             ),
-            roles=["data"],
+            roles=["data", "gazetteer-index"],
             description=(
                 "One row per place plus one per distinct alternative "
                 "spelling. The geometry column is one point per row, from the "
                 "place's centroid: a marker, not a shape."
             ),
-            **{"table:primary_geometry": "geometry"},
+            **{
+                "table:primary_geometry": "geometry",
+                "table:row_count": md.num_rows,
+                "gazetteer:row_groups": manifest["index"]["row_groups"],
+                "gazetteer:row_group_rows": manifest["index"]["row_group_rows"],
+                "gazetteer:feature_id_column": manifest["index"]["feature_id_column"],
+                **(
+                    {"gazetteer:footer_metadata_bytes": manifest["index"]["footer_metadata_bytes"]}
+                    if "footer_metadata_bytes" in manifest["index"]
+                    # Unlike the prominent subset below, the main index's
+                    # manifest entry here only records footer_bytes (footer +
+                    # page index), never the metadata-only size -- an earlier
+                    # build measured the two differently. Omit rather than
+                    # guess: see CLAUDE.md pitfall #1 on the two byte counts.
+                    else {}
+                ),
+            },
         ),
         "manifest": file_asset(
             CATALOG / "names" / "index.json", "./index.json",
@@ -636,7 +723,7 @@ def names_collection() -> dict:
                 f"{manifest['prominent_index']['row_group_rows']}, same "
                 "schema and sort as the full index)"
             ),
-            roles=["data"],
+            roles=["data", "gazetteer-index", "prominent"],
             description=(
                 "A strict row subset of the full index: a hit found here "
                 "resolves exactly as a hit found there. Small enough to "
@@ -646,7 +733,28 @@ def names_collection() -> dict:
                 "and stated, are in the manifest under "
                 "`prominent_index.criteria`."
             ),
-            **{"table:primary_geometry": "geometry"},
+            **{
+                "table:primary_geometry": "geometry",
+                "table:row_count": pmd.num_rows,
+                "gazetteer:row_groups": manifest["prominent_index"]["row_groups"],
+                "gazetteer:row_group_rows": manifest["prominent_index"]["row_group_rows"],
+                # The prominent_index manifest block carries no
+                # feature_id_column of its own -- it is explicitly "same
+                # schema and sort as the full index" -- so fall back to the
+                # main index's.
+                "gazetteer:feature_id_column": manifest["prominent_index"].get(
+                    "feature_id_column", manifest["index"]["feature_id_column"]
+                ),
+                **(
+                    {
+                        "gazetteer:footer_metadata_bytes": manifest["prominent_index"][
+                            "footer_metadata_bytes"
+                        ]
+                    }
+                    if "footer_metadata_bytes" in manifest["prominent_index"]
+                    else {}
+                ),
+            },
         )
     pm = pmtiles_path("names")
     if pm.exists():
@@ -657,12 +765,60 @@ def names_collection() -> dict:
             roles=["visual", "data"],
             **{"pmtiles:layers": ["names"]},
         )
+
+    # Inline gazetteer-boundaries assets for every level/variant the manifest
+    # actually declares, so a client that has fetched only this collection
+    # document can still resolve geometry -- the "both" ruling in
+    # cng-map-widgets issue #1 ("Design note: where gazetteer-boundaries
+    # lives"): boundary collections self-describe AND the names collection
+    # carries the same facts inline.
+    for entry in manifest["boundaries"]:
+        b_level = entry["level"]
+        b_collection = entry["collection"]
+        for variant in ("full", "display"):
+            if variant not in entry:
+                continue
+            file_info = entry[variant]
+            asset_key = f"boundaries-{b_collection}-{variant}"
+            asset = {
+                "href": file_info["url"],
+                "type": "application/vnd.apache.parquet",
+                "title": f"{TITLES[b_collection]}, boundaries ({variant})",
+                "roles": (
+                    ["gazetteer-boundaries", "overview"]
+                    if variant == "display" else ["gazetteer-boundaries"]
+                ),
+                "file:size": file_info["size"],
+                "table:row_count": file_info["row_count"],
+            }
+            asset.update(gazetteer_boundary_fields(b_level, variant, entry))
+            assets[asset_key] = asset
+
     assets.update(upstream_assets())
     assets.update(carried_assets())
     assets.update(style_assets("names"))
     assets.update(thumbnail_asset("names", title))
 
     doc = base("names", title, description, bbox, md.num_rows, [])
+    doc["stac_extensions"] = doc["stac_extensions"] + [
+        SCIENTIFIC_SCHEMA, GAZETTEER_SCHEMA, GAZETTEER_BOUNDARIES_SCHEMA,
+    ]
+    # sci:citation (Scientific Citation extension) carries the manifest's own
+    # mandated attribution string verbatim -- "Data from Who's On First.
+    # License: ..." -- which is what WOF's LICENSE.md actually obliges a UI
+    # to display. Mapping it onto providers[].name alone would lose that
+    # text; see docs/licensing.md. There is no DOI for Who's On First, so
+    # sci:doi is omitted (unlike the geoBoundaries reference, which has one).
+    doc["sci:citation"] = manifest["attribution"][0]["text"]
+    doc["gazetteer:levels"] = manifest["levels"]
+    # The normalization algorithm identifier is not itself a manifest field
+    # -- `index.sorted_by` names the columns, not the algorithm -- so this
+    # one string is the fixed identifier for tools/wofcommon.py's name
+    # normalization, not read off the manifest.
+    doc["gazetteer:normalization"] = "nfd-strip-marks-lower/1"
+    doc["gazetteer:sort"] = manifest["index"]["sorted_by"]
+    doc["gazetteer:dropped_unnamed"] = manifest["dropped_unnamed"]
+    doc["gazetteer:stats_truncated"] = manifest["stats_truncated"]
     doc["assets"] = assets
     doc["table:columns"] = as_table_columns(
         [c for c in INDEX_COLUMNS if c[0] in present_columns(NAMES_PATH)]

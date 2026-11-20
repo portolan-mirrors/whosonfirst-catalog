@@ -5,7 +5,8 @@
     "https://schemas.portolan-sdi.org/portolan/v0.2.0/schema.json",
     "https://stac-extensions.github.io/table/v1.2.0/schema.json",
     "https://stac-extensions.github.io/file/v2.1.0/schema.json",
-    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json"
+    "https://stac-extensions.github.io/web-map-links/v1.3.0/schema.json",
+    "https://cholmes.github.io/stac-gazetteer/gazetteer-boundaries/v1.0.0/schema.json"
   ],
   "id": "localadmin",
   "title": "Who's On First Local Administrative Units",
@@ -193,10 +194,18 @@
       "type": "application/vnd.apache.parquet",
       "title": "Who's On First Local Administrative Units, full-resolution GeoParquet 1.1 (644 row groups of 256, zstd, page index, sorted by country and wof_id)",
       "roles": [
-        "data"
+        "data",
+        "gazetteer-boundaries"
       ],
       "description": "Read this to clip, measure, export or analyse one place or a few. One row group is 1.3 MiB, against a median of 38 MiB from the upstream combined file. The geometry is byte-identical to upstream except for the rows `geometry_repaired` flags.",
-      "table:primary_geometry": "geometry"
+      "table:primary_geometry": "geometry",
+      "gazetteer:level": 3,
+      "gazetteer:variant": "full",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 256,
+      "gazetteer:row_groups": 644
     },
     "display": {
       "href": "./wof_localadmin_display.parquet",
@@ -207,10 +216,18 @@
       "roles": [
         "data",
         "visual",
-        "overview"
+        "overview",
+        "gazetteer-boundaries"
       ],
       "description": "The same rows in the same order and the same row groups as the full file, simplified with `ST_SimplifyPreserveTopology` and then buffered **outward** by the same amount, so the shape always contains the true boundary rather than cutting corners off it. The tolerance is per feature: 0.4% of that feature's own bounding-box diagonal, capped at 0.002 degrees. Point geometries are carried through untouched, because buffering a point would turn a marker into a circle. 26.1% of the full-resolution file. Draw it and filter with it; measure and clip with the full-resolution file.",
-      "table:primary_geometry": "geometry"
+      "table:primary_geometry": "geometry",
+      "gazetteer:level": 3,
+      "gazetteer:variant": "display",
+      "gazetteer:geometry_column": "geometry",
+      "gazetteer:feature_id_column": "wof_id",
+      "gazetteer:country_column": "country",
+      "gazetteer:row_group_rows": 256,
+      "gazetteer:row_groups": 644
     },
     "pmtiles": {
       "href": "./localadmin.pmtiles",
