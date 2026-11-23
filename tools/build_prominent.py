@@ -150,7 +150,6 @@ from wofcommon import (
     human,
 )
 from build_names import (
-    SOURCE_NAME,
     STATISTICS_COLUMNS,
     footer_bytes,
     manifest_path,
