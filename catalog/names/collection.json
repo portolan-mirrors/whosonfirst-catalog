@@ -12,7 +12,7 @@
   ],
   "id": "names",
   "title": "Who's On First Gazetteer Name Index",
-  "description": "**The gazetteer index: a name search sidecar, not a boundary dataset.** 5,405,294 places plus 4,073,485 alternative spellings of their names, 9,478,779 rows in all, sorted by a folded form of the name so that a static client with no server can turn a typed name into a Who's On First identifier, a bounding box and a point.\n\n**The sort is the whole design.** Row group statistics on `name_norm` are tight, non-overlapping alphabetical ranges, the footer declares the sort, and the Parquet page index is written, so a typed prefix resolves from one or two row groups rather than a download. The manifest at [index.json](index.json) is about 9 KB and carries the index's exact size, row group count and checksum, the `catalog_version` the boundary files are pinned to, and the attribution a client has to show. Fetch it first.\n\nEvery row carries what a result list needs without a second fetch: the display spelling, the level, the country, the parent's name, the population where WOF has one, WOF's own `min_zoom` prominence signal, a bbox to fly to, a point to pin, and an advisory `geometry_ref` that turns the geometry fetch into a single range read.\n\n**Multilingual, within a limit worth knowing.** The alternative spellings come from the 25 language columns geocode.earth's GeoParquet build carries. Who's On First itself carries names in hundreds of languages — one San Francisco record has 214 `name:*` properties — but those live in the SQLite and GeoJSON distributions, so this index cannot be richer than 25 languages however multilingual WOF is. Both distributions are assets of this collection.\n\n**Two files, two load strategies.** Beside the full index sits a prominent subset — every country, region and county, the larger localadmins, cities from 50,000 people, and the English and major-language spellings of all of them — small enough for a client to fetch whole on focus and answer the first keystrokes from memory (including fuzzy typo matching) while the full index answers deep queries by range request. The manifest's `prominent_index.criteria` states exactly what is in and out.\n\nThis is place-name lookup, not address geocoding. The [agent guide](AGENTS.md) has the prefix-lookup recipe and the join back to geometry.",
+  "description": "**The gazetteer index: a name search sidecar, not a boundary dataset.** 5,405,294 places plus 4,073,704 alternative spellings of their names, 9,478,998 rows in all, sorted by a folded form of the name so that a static client with no server can turn a typed name into a Who's On First identifier, a bounding box and a point.\n\n**The sort is the whole design.** Row group statistics on `name_norm` are tight, non-overlapping alphabetical ranges, the footer declares the sort, and the Parquet page index is written, so a typed prefix resolves from one or two row groups rather than a download. The manifest at [index.json](index.json) is about 10 KB and carries the index's exact size, row group count and checksum, the `catalog_version` the boundary files are pinned to, and the attribution a client has to show. Fetch it first.\n\nEvery row carries what a result list needs without a second fetch: the display spelling, the level, the country, the parent's name, the population where WOF has one, WOF's own `min_zoom` prominence signal, a bbox to fly to, a point to pin, and an advisory `geometry_ref` that turns the geometry fetch into a single range read.\n\n**Multilingual, within a limit worth knowing.** The alternative spellings come from the 25 language columns geocode.earth's GeoParquet build carries. Who's On First itself carries names in hundreds of languages — one San Francisco record has 214 `name:*` properties — but those live in the SQLite and GeoJSON distributions, so this index cannot be richer than 25 languages however multilingual WOF is. Both distributions are assets of this collection.\n\n**Two files, two load strategies.** Beside the full index sits a prominent subset — every country, region and county, the larger localadmins, cities from 50,000 people, and the English and major-language spellings of all of them — small enough for a client to fetch whole on focus and answer the first keystrokes from memory (including fuzzy typo matching) while the full index answers deep queries by range request. The manifest's `prominent_index.criteria` states exactly what is in and out.\n\nThis is place-name lookup, not address geocoding. The [agent guide](AGENTS.md) has the prefix-lookup recipe and the join back to geometry.",
   "license": "other",
   "keywords": [
     "gazetteer",
@@ -74,7 +74,7 @@
   },
   "updated": "2026-11-12T00:00:00Z",
   "table:primary_geometry": "geometry",
-  "table:row_count": 9478779,
+  "table:row_count": 9478998,
   "links": [
     {
       "rel": "root",
@@ -209,8 +209,8 @@
   "assets": {
     "data": {
       "href": "./wof_names.parquet",
-      "file:size": 603916555,
-      "file:checksum": "1220bf0f4969f1f061688c777231fc8fb8bacfccd5546286c84bb04490faef7857fe",
+      "file:size": 603949574,
+      "file:checksum": "1220b91c171f5b1b22a52cd2a9b1b410fc33c8c193051e210ea828a94a82b3361429",
       "type": "application/vnd.apache.parquet",
       "title": "Who's On First Gazetteer Name Index, GeoParquet 1.1 (741 row groups of 12800, zstd, page index, sorted by name_norm)",
       "roles": [
@@ -219,15 +219,16 @@
       ],
       "description": "One row per place plus one per distinct alternative spelling. The geometry column is one point per row, from the place's centroid: a marker, not a shape.",
       "table:primary_geometry": "geometry",
-      "table:row_count": 9478779,
+      "table:row_count": 9478998,
       "gazetteer:row_groups": 741,
       "gazetteer:row_group_rows": 12800,
-      "gazetteer:feature_id_column": "feature_id"
+      "gazetteer:feature_id_column": "feature_id",
+      "gazetteer:footer_metadata_bytes": 1713103
     },
     "manifest": {
       "href": "./index.json",
-      "file:size": 11712,
-      "file:checksum": "12208f5812118fd844cf6ac4c5e85e55ff6ddd88ccca23a72e34fe2f3be00984cf71",
+      "file:size": 12167,
+      "file:checksum": "12208377a0ceaa40a512ed5bcc3dec1f4c4b290d5f621059abe478d26129167b7f6d",
       "type": "application/json",
       "title": "Index manifest: fetch this before the index",
       "roles": [
@@ -237,10 +238,10 @@
     },
     "data-prominent": {
       "href": "./wof_names_prominent.parquet",
-      "file:size": 21225495,
-      "file:checksum": "1220feddb32c907d9b433c6eb0be48a6cf8f2291af80ff439ad77dfe4d34daa5aee9",
+      "file:size": 21225043,
+      "file:checksum": "1220ce3b8b7dd9bcfccdffd7b7f50086d6ef4328b63d024115507fabd569560400a4",
       "type": "application/vnd.apache.parquet",
-      "title": "Prominent subset for eager loading (285,735 rows, 140 row groups of 2048, same schema and sort as the full index)",
+      "title": "Prominent subset for eager loading (285,716 rows, 140 row groups of 2048, same schema and sort as the full index)",
       "roles": [
         "data",
         "gazetteer-index",
@@ -248,16 +249,16 @@
       ],
       "description": "A strict row subset of the full index: a hit found here resolves exactly as a hit found there. Small enough to fetch whole on search-box focus, which is what makes instant first keystrokes and typo-tolerant (fuzzy) search possible without a server. Selection criteria, measured and stated, are in the manifest under `prominent_index.criteria`.",
       "table:primary_geometry": "geometry",
-      "table:row_count": 285735,
+      "table:row_count": 285716,
       "gazetteer:row_groups": 140,
       "gazetteer:row_group_rows": 2048,
       "gazetteer:feature_id_column": "feature_id",
-      "gazetteer:footer_metadata_bytes": 310266
+      "gazetteer:footer_metadata_bytes": 310315
     },
     "pmtiles": {
       "href": "./names.pmtiles",
-      "file:size": 182395531,
-      "file:checksum": "122044da0eeeb3a9f99306c88f97aef99dee996bf22016adbcf06960b7869fbcde14",
+      "file:size": 182403752,
+      "file:checksum": "1220ae22900a4f3c9a325ba8f160f6ec5c813592d69dab578910cc295192394cc781",
       "type": "application/vnd.pmtiles",
       "title": "Who's On First Gazetteer Name Index, vector tiles to zoom 8",
       "roles": [
@@ -283,7 +284,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 4,
-      "gazetteer:row_groups": 89
+      "gazetteer:row_groups": 89,
+      "gazetteer:footer_metadata_bytes": 413009
     },
     "boundaries-country-display": {
       "href": "../country/wof_country_display.parquet",
@@ -301,7 +303,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 4,
-      "gazetteer:row_groups": 89
+      "gazetteer:row_groups": 89,
+      "gazetteer:footer_metadata_bytes": 264752
     },
     "boundaries-region-full": {
       "href": "../region/wof_region.parquet",
@@ -318,7 +321,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 16,
-      "gazetteer:row_groups": 273
+      "gazetteer:row_groups": 273,
+      "gazetteer:footer_metadata_bytes": 1333920
     },
     "boundaries-region-display": {
       "href": "../region/wof_region_display.parquet",
@@ -336,7 +340,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 16,
-      "gazetteer:row_groups": 273
+      "gazetteer:row_groups": 273,
+      "gazetteer:footer_metadata_bytes": 772174
     },
     "boundaries-county-full": {
       "href": "../county/wof_county.parquet",
@@ -353,7 +358,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 64,
-      "gazetteer:row_groups": 659
+      "gazetteer:row_groups": 659,
+      "gazetteer:footer_metadata_bytes": 3359412
     },
     "boundaries-county-display": {
       "href": "../county/wof_county_display.parquet",
@@ -371,7 +377,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 64,
-      "gazetteer:row_groups": 659
+      "gazetteer:row_groups": 659,
+      "gazetteer:footer_metadata_bytes": 1966604
     },
     "boundaries-localadmin-full": {
       "href": "../localadmin/wof_localadmin.parquet",
@@ -388,7 +395,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 256,
-      "gazetteer:row_groups": 644
+      "gazetteer:row_groups": 644,
+      "gazetteer:footer_metadata_bytes": 3166201
     },
     "boundaries-localadmin-display": {
       "href": "../localadmin/wof_localadmin_display.parquet",
@@ -406,7 +414,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 256,
-      "gazetteer:row_groups": 644
+      "gazetteer:row_groups": 644,
+      "gazetteer:footer_metadata_bytes": 1841445
     },
     "boundaries-locality-full": {
       "href": "../locality/wof_locality.parquet",
@@ -423,7 +432,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 2048,
-      "gazetteer:row_groups": 2342
+      "gazetteer:row_groups": 2342,
+      "gazetteer:footer_metadata_bytes": 11575194
     },
     "boundaries-neighbourhood-full": {
       "href": "../neighbourhood/wof_neighbourhood.parquet",
@@ -440,7 +450,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 4096,
-      "gazetteer:row_groups": 98
+      "gazetteer:row_groups": 98,
+      "gazetteer:footer_metadata_bytes": 472423
     },
     "upstream-geoparquet": {
       "href": "https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet",
@@ -611,8 +622,8 @@
     },
     "thumbnail": {
       "href": "./names.thumb.png",
-      "file:size": 563886,
-      "file:checksum": "1220648ac7681a5bbe8ffa5052ed2f3a38b20e2ed8b7a62d65c72979fc4ffe001a25",
+      "file:size": 563910,
+      "file:checksum": "1220fe55d3ba0ed5041df864c0f984674857bec44224630916dbdd22c25a75b5881f",
       "type": "image/png",
       "title": "Who's On First Gazetteer Name Index, rendered from the default style",
       "roles": [

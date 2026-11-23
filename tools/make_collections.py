@@ -105,10 +105,10 @@ def gazetteer_boundary_fields(level: int, variant: str, entry: dict) -> dict:
     boundary collection's own `data`/`display` asset, and the names
     collection's inline ``boundaries-{collection}-{variant}`` asset.
 
-    Unlike the geoBoundaries manifest this one does not record
-    `footer_metadata_bytes` on any boundary file (full or display, any
-    level), so that field is only added when present -- never guessed or
-    recomputed here. Likewise `index_key_column` is absent for every WOF
+    `footer_metadata_bytes` is measured by tools/build_names.py when it
+    writes the manifest; a manifest from before it did so lacks the key, so
+    the field is added only when present -- never guessed or recomputed
+    here. Likewise `index_key_column` is absent for every WOF
     level (every level has a real `wof_id` join column), so it is added only
     when the manifest actually has one.
     """
@@ -689,11 +689,8 @@ def names_collection() -> dict:
                 **(
                     {"gazetteer:footer_metadata_bytes": manifest["index"]["footer_metadata_bytes"]}
                     if "footer_metadata_bytes" in manifest["index"]
-                    # Unlike the prominent subset below, the main index's
-                    # manifest entry here only records footer_bytes (footer +
-                    # page index), never the metadata-only size -- an earlier
-                    # build measured the two differently. Omit rather than
-                    # guess: see CLAUDE.md pitfall #1 on the two byte counts.
+                    # A manifest written before tools/build_names.py
+                    # recorded this key lacks it. Omit rather than guess.
                     else {}
                 ),
             },

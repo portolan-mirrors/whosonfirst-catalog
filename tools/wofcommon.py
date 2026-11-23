@@ -640,24 +640,20 @@ ATTRIBUTION_BLOCKS = (
 # ---------------------------------------------------------------------------
 # Name normalization
 # ---------------------------------------------------------------------------
-# The index-file contract fixes this: NFD, strip combining marks (Unicode
-# category Mn), lowercase, collapse whitespace, trim, and keep only Unicode
-# letters, digits, space, hyphen and apostrophe. Everything else is removed.
-# The alphabet matters because the geocoder normalizes the user's keystrokes
-# with the same rule in JavaScript and then compares strings byte-wise against
-# this column; a character this rule keeps and the client's rule drops makes
-# the binary search miss.
-_KEEP = re.compile(r"[^\w\s'-]", re.UNICODE)
-_UNDERSCORE = re.compile(r"_")
-_WS = re.compile(r"\s+")
+# The index-file contract fixes this: NFD, strip combining marks (every
+# Unicode mark category), lowercase, keep only Unicode letters, digits, space,
+# hyphen and apostrophe -- everything else is REMOVED, not replaced -- then
+# collapse whitespace and trim. The alphabet matters because the geocoder
+# normalizes the user's keystrokes with the same rule in JavaScript and then
+# compares strings byte-wise against this column; a character this rule keeps
+# and the client's rule drops makes the binary search miss.
 
 # Every Unicode mark category, not just the non-spacing one. This matters, and
 # it is subtle: `unicodedata.combining()` returns a canonical combining class,
 # which is 0 for a *spacing* mark (category Mc) such as the Bengali vowel sign
 # U+09BF. Stripping only what `combining()` flags leaves those marks in place,
-# and they are not `\w`, so the next step turns each of them into a space --
-# folding "কিয়োতো প্রশাসনিক অঞ্চল" to "ক য ত পরশ সন ক অঞচল", with the word
-# broken into pieces.
+# where the alphabet step then treats them as disallowed characters in the
+# middle of a word.
 #
 # A JavaScript client implementing the contract's "strip combining marks" with
 # `/\p{M}/gu` strips Mc as well, folds the same name to "কযত পরশসনক অঞচল", and
@@ -667,16 +663,45 @@ _MARKS = {"Mn", "Mc", "Me"}
 
 
 def normalize_name(name: str | None) -> str | None:
-    """Fold a display name to the index's sort key."""
+    """Fold a display name to the index's sort key.
+
+    This MUST match ``normalizeName`` in ``@cngeo/spec``
+    (``packages/spec/src/normalize.js``) byte for byte. That function is
+    normative: the geocoder folds the user's keystrokes with it before
+    comparing them byte-wise against this column, and it is what
+    ``gazetteer:normalization: nfd-strip-marks-lower/1`` names. In order:
+    NFD decompose; strip every mark (``_MARKS``, the JS ``\\p{M}``);
+    lowercase; REMOVE every character that is not a letter (``L*``), a digit
+    (``N*``), a literal space, an apostrophe or a hyphen; collapse runs of
+    spaces and trim.
+
+    The fourth step removes. A previous version substituted a space for each
+    disallowed character, so "O’Mullane" folded to "o mullane" where a client
+    computes "omullane", and those rows sorted where no prefix search for
+    them would look. The conformance checker in cng-map-widgets
+    (tools/gazetteer-conformance.mjs) found it: 36 of 3,000 sampled rows.
+    """
     if name is None:
         return None
     decomposed = unicodedata.normalize("NFD", name)
     stripped = "".join(
         c for c in decomposed if unicodedata.category(c) not in _MARKS
     )
-    # \w includes the underscore, which is not in the declared alphabet.
-    cleaned = _UNDERSCORE.sub(" ", _KEEP.sub(" ", stripped))
-    folded = _WS.sub(" ", cleaned).strip().lower()
+    lowered = stripped.lower()
+    # `Cn` -- a code point THIS interpreter's Unicode database has no entry
+    # for -- is kept, not dropped. The database ships with Python (14.0 in
+    # 3.11) and trails the browsers the geocoder runs in (Unicode 17 in
+    # current V8), so an unknown code point in a real place name is almost
+    # always a letter assigned since: CJK Extension H ideographs in Chinese
+    # village names, measured. Dropping them folded "上村\U00031587" to "上村"
+    # where a client computes the full string, and the row was unfindable.
+    kept = "".join(
+        c for c in lowered
+        if unicodedata.category(c)[0] in ("L", "N")
+        or unicodedata.category(c) == "Cn"
+        or c in " '-"
+    )
+    folded = " ".join(kept.split())
     return folded or None
 
 

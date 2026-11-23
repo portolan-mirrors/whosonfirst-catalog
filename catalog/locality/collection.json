@@ -205,7 +205,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 2048,
-      "gazetteer:row_groups": 2342
+      "gazetteer:row_groups": 2342,
+      "gazetteer:footer_metadata_bytes": 11575194
     },
     "pmtiles": {
       "href": "./locality.pmtiles",

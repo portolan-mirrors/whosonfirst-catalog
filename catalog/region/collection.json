@@ -205,7 +205,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 16,
-      "gazetteer:row_groups": 273
+      "gazetteer:row_groups": 273,
+      "gazetteer:footer_metadata_bytes": 1333920
     },
     "display": {
       "href": "./wof_region_display.parquet",
@@ -227,7 +228,8 @@
       "gazetteer:feature_id_column": "wof_id",
       "gazetteer:country_column": "country",
       "gazetteer:row_group_rows": 16,
-      "gazetteer:row_groups": 273
+      "gazetteer:row_groups": 273,
+      "gazetteer:footer_metadata_bytes": 772174
     },
     "pmtiles": {
       "href": "./region.pmtiles",

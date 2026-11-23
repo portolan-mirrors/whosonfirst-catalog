@@ -31,14 +31,14 @@ was written.
 ## Overview
 
 **A name search sidecar, not a boundary dataset.** 5,405,294 places plus
-4,073,485 alternative spellings, 9,478,779 rows, sorted by a folded form of the
+4,073,704 alternative spellings, 9,478,998 rows, sorted by a folded form of the
 name. Public root:
 `https://data.source.coop/portolan-mirrors/whosonfirst-catalog/catalog.json`
 
 ```
-names/wof_names.parquet  575.9 MiB, 9,478,779 rows, 741 row groups of 12,800
-names/index.json  11,748 bytes, fetch first
-names/wof_names_prominent.parquet  20.2 MiB, 285,735 rows, strict subset, load eagerly for instant + fuzzy search
+names/wof_names.parquet  576.0 MiB, 9,478,998 rows, 741 row groups of 12,800
+names/index.json  12,167 bytes, fetch first
+names/wof_names_prominent.parquet  20.2 MiB, 285,716 rows, strict subset, load eagerly for instant + fuzzy search
 ```
 
 **The prominent subset** **[derived]** is a strict row subset of the full index
@@ -61,16 +61,16 @@ INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
 ```
 
 **Fetch [index.json](index.json) first** **[derived]**. It carries the index's
-size (603,916,555 bytes), row group count (741), checksum, footer size
-(1,713,128 bytes), the `catalog_version`
+size (603,949,574 bytes), row group count (741), checksum, footer size
+(1,713,103 bytes), the `catalog_version`
 (`whosonfirst-admin-parquet-2025-04-07`) that must match the footer metadata of
 this file and of every boundary file, the URL and row count of each boundary
 and display file, and the attribution each source requires.
 
-**Then range-request the index.** At 575.9 MiB this file is not meant to be
+**Then range-request the index.** At 576.0 MiB this file is not meant to be
 loaded whole. The manifest's `index.size` lets the footer read be one
-exactly-sized tail request of 1,713,128 bytes rather than hyparquet's
-speculative 512 KB default, with a further 431,565 bytes of page index read
+exactly-sized tail request of 1,713,103 bytes rather than hyparquet's
+speculative 512 KB default, with a further 431,545 bytes of page index read
 lazily per column chunk **[derived: `tools/measure_index.py`]**.
 
 ## Schema & field notes
@@ -99,7 +99,7 @@ SELECT count(*) AS rows, count(DISTINCT feature_id) AS places
 FROM 'https://data.source.coop/portolan-mirrors/whosonfirst-catalog/names/wof_names.parquet';
 ```
 
-**7,221,629 of 9,478,779 rows are points in their boundary collection**
+**7,221,438 of 9,478,998 rows are points in their boundary collection**
 **[derived]**. `is_point` says so per row. A client about to draw an outline
 should check it first.
 
@@ -180,7 +180,7 @@ San Antonio  1,828
 Сан-Антоніо  1,770
 Сан-Антонио  1,765
 سان أنطونيو  1,765
-サンアントニオ  1,763
+サンアントニオ  1,765
 ```
 
 The join back to geometry, branching on `level`:

@@ -9,19 +9,19 @@ rebuild.
 
 | | |
 |---|---|
-| Rows | 9,478,779 |
-| Size | 603,916,555 bytes (575.9 MiB) |
+| Rows | 9,478,998 |
+| Size | 603,949,574 bytes (576.0 MiB) |
 | Bytes per row | 63.71 |
 | Row groups | 741 of 12,800 rows |
-| Mean row group | 815,002 bytes (795.9 KiB) |
-| Footer | 1,713,128 bytes |
-| Page index | 431,565 bytes |
+| Mean row group | 815,046 bytes (795.9 KiB) |
+| Footer | 1,713,103 bytes |
+| Page index | 431,545 bytes |
 
 ## What the first keystroke costs
 
 A range client reads the footer before it can read any row group, and
 the manifest declares `index.size` so that read is one exactly-sized tail
-request of 1,713,128 bytes rather than hyparquet's speculative 512 KB default.
+request of 1,713,103 bytes rather than hyparquet's speculative 512 KB default.
 The page index sits before the footer and is read
 lazily, per column chunk, only by a reader that wants a page rather
 than a whole chunk.
@@ -33,7 +33,7 @@ already holds.
 
 ## What a keystroke costs, per prefix
 
-Measured over all 200,734 two-character prefixes that occur
+Measured over all 200,687 two-character prefixes that occur
 in `name_norm`: how many row groups can hold a match, which is how
 many range requests a client makes.
 
@@ -54,30 +54,30 @@ Compressed bytes per column, whole file.
 
 | column | bytes | share |
 |---|---|---|
-| `geometry` | 119,842,140 | 19.9% |
-| `feature_id` | 51,151,782 | 8.5% |
-| `bbox.xmax` | 47,358,143 | 7.9% |
-| `bbox.xmin` | 47,357,274 | 7.9% |
-| `bbox.ymin` | 47,101,697 | 7.8% |
-| `bbox.ymax` | 47,099,355 | 7.8% |
-| `geometry_ref.row` | 45,846,445 | 7.6% |
-| `parent_name` | 39,544,493 | 6.6% |
-| `name` | 33,532,961 | 5.6% |
-| `name_norm` | 31,891,940 | 5.3% |
-| `parent_id` | 28,149,595 | 4.7% |
-| `alt_of` | 21,793,737 | 3.6% |
-| `geometry_ref.row_group` | 14,554,276 | 2.4% |
-| `population` | 8,538,099 | 1.4% |
-| `country` | 3,818,045 | 0.6% |
-| `country_iso2` | 3,762,752 | 0.6% |
-| `min_zoom` | 2,419,837 | 0.4% |
-| `name_dupes` | 2,048,613 | 0.3% |
-| `geometry_ref.file` | 1,212,074 | 0.2% |
-| `placetype` | 1,180,128 | 0.2% |
-| `level` | 1,177,169 | 0.2% |
-| `name_lang` | 996,774 | 0.2% |
-| `is_point` | 769,521 | 0.1% |
-| `name_lang_count` | 562,026 | 0.1% |
+| `geometry` | 119,845,004 | 19.9% |
+| `feature_id` | 51,183,748 | 8.5% |
+| `bbox.xmax` | 47,366,152 | 7.9% |
+| `bbox.xmin` | 47,361,087 | 7.9% |
+| `bbox.ymin` | 47,100,160 | 7.8% |
+| `bbox.ymax` | 47,097,196 | 7.8% |
+| `geometry_ref.row` | 45,908,918 | 7.6% |
+| `parent_name` | 39,547,867 | 6.6% |
+| `name` | 33,535,734 | 5.6% |
+| `name_norm` | 31,846,234 | 5.3% |
+| `parent_id` | 28,145,283 | 4.7% |
+| `alt_of` | 21,791,754 | 3.6% |
+| `geometry_ref.row_group` | 14,552,900 | 2.4% |
+| `population` | 8,532,063 | 1.4% |
+| `country` | 3,817,984 | 0.6% |
+| `country_iso2` | 3,760,749 | 0.6% |
+| `min_zoom` | 2,413,511 | 0.4% |
+| `name_dupes` | 2,047,688 | 0.3% |
+| `geometry_ref.file` | 1,208,441 | 0.2% |
+| `placetype` | 1,178,278 | 0.2% |
+| `level` | 1,173,470 | 0.2% |
+| `name_lang` | 997,124 | 0.2% |
+| `is_point` | 769,707 | 0.1% |
+| `name_lang_count` | 560,888 | 0.1% |
 | `source` | 62,982 | 0.0% |
 
 ## Why the row groups are this size
@@ -110,31 +110,31 @@ zstd.
 
 ```
 file          wof_names.parquet
-size          603.92 MB
-rows          9,478,779
+size          603.95 MB
+rows          9,478,998
 row groups    741
 columns       25
-footer read   1.71 MB in 2 request(s), 77 ms
+footer read   1.71 MB in 2 request(s), 60 ms
 sorted_by     [{"column_idx":1,"descending":false,"nulls_first":true}]
 kv metadata   cnmw:catalog_version=whosonfirst-admin-parquet-2025-04-07, wof:distribution=whosonfirst-data-admin, wof:parquet_built=2025-04-07T13:07:59Z, wof:source_url=https://data.geocode.earth/wof/dist/parquet/whosonfirst-data-admin-latest.parquet, cnmw:role=names-index
 
-prefix "zur"  groups 1  fetched 641.5 KB in 2 request(s), 169 ms  rows 371  places 347
+prefix "zur"  groups 1  fetched 638.1 KB in 2 request(s), 149 ms  rows 372  places 348
   top: Zürich [L1 CHE, Switzerland] | Zurrico [L1 MLT, Malta] | Zurmi [L2 NGA, Zamfara]
 
-prefix "sao pa"  groups 1  fetched 594.1 KB in 2 request(s), 94 ms  rows 89  places 88
+prefix "sao pa"  groups 1  fetched 597.5 KB in 2 request(s), 87 ms  rows 89  places 88
   top: São Paulo [L1 BRA, Southeast] | São Patrício [L1 VCT, Saint Vincent and the Grenadines] | Sao Patricio [L2 BRA, Goias]
 
-prefix "kyoto"  groups 1  fetched 608.6 KB in 2 request(s), 113 ms  rows 8  places 5
+prefix "kyoto"  groups 1  fetched 610.5 KB in 2 request(s), 91 ms  rows 8  places 5
   top: Kyoto [L1 JPN, Japan] | Kyōto [L2 JPN, Kyoto] | Kyōto [L4 JPN, Kyoto]
 
-prefix "købe"  groups 1  fetched 0 B in 0 request(s), 92 ms  rows 7  places 7
+prefix "købe"  groups 1  fetched 0 B in 0 request(s), 76 ms  rows 7  places 7
   top: København K [L5 DNK, Copenhagen] | København N [L5 DNK, Copenhagen] | København NV [L5 DNK, Copenhagen]
 
-prefix "wa"  groups 5  fetched 2.99 MB in 10 request(s), 235 ms  rows 47619  places 46425
+prefix "wa"  groups 5  fetched 3.00 MB in 10 request(s), 209 ms  rows 47618  places 46425
   top: Wallis and Futuna [L0 FRA] | Watykan [L0 VAT] | Wake [L0 XX]
 
 OK: required columns present, sort declared, row group ranges non-overlapping
-total read    6.54 MB in 18 request(s)
+total read    6.56 MB in 18 request(s)
 ```
 
 `population` is INT64, so hyparquet hands it back as a BigInt. A
