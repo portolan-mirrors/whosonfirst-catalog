@@ -1,7 +1,7 @@
 # Who's On First Gazetteer Name Index
 
 **A name search sidecar, not a boundary dataset.** 5,405,294 places plus
-4,073,485 alternative spellings of their names, 9,478,779 rows in all, sorted
+4,073,704 alternative spellings of their names, 9,478,998 rows in all, sorted
 by a folded form of the name so that a static client with no server can turn a
 typed name into a Who's On First identifier, a bounding box and a point.
 
@@ -24,10 +24,10 @@ distribution holds no street or house number.
 ## Files
 
 ```
-names/wof_names.parquet  575.9 MiB, 9,478,779 rows, 741 row groups of 12,800
-names/index.json  11,748 bytes, the manifest to fetch first
-names/wof_names_prominent.parquet  20.2 MiB, 285,735 rows, the prominent subset to load eagerly
-names/names.pmtiles  173.9 MiB, zoom 0-8, layer "names"
+names/wof_names.parquet  576.0 MiB, 9,478,998 rows, 741 row groups of 12,800
+names/index.json  12,167 bytes, the manifest to fetch first
+names/wof_names_prominent.parquet  20.2 MiB, 285,716 rows, the prominent subset to load eagerly
+names/names.pmtiles  174.0 MiB, zoom 0-8, layer "names"
 ```
 
 ## How to read it
@@ -38,9 +38,9 @@ exactly-sized tail request, every boundary file's URL and row count, the
 `catalog_version` (`whosonfirst-admin-parquet-2025-04-07`) all of them are
 pinned to, and the attribution a client must display.
 
-**Then range-request the index.** At 575.9 MiB this file is not meant to be
+**Then range-request the index.** At 576.0 MiB this file is not meant to be
 loaded whole. The manifest's `index.size` lets the footer read be one
-exactly-sized tail request of 1,713,128 bytes rather than a speculative 512 KB.
+exactly-sized tail request of 1,713,103 bytes rather than a speculative 512 KB.
 After that, the sort does the work: a typed prefix lives in a contiguous run of
 row groups that a client finds by binary search over the `name_norm`
 statistics. `docs/index-measurements.md` in the
@@ -53,7 +53,7 @@ A browser client reads it with
 compressors package is **required**: every column chunk is zstd.
 
 **Or load the prominent subset whole.** `names/wof_names_prominent.parquet`
-(20.2 MiB, 285,735 rows) is a strict row subset of the full index in the same
+(20.2 MiB, 285,716 rows) is a strict row subset of the full index in the same
 schema and sort: every country, region and county, the larger localadmins,
 cities from 50,000 people, and the English and major-language spellings of all
 of them. A client that fetches it on search-box focus answers first keystrokes
@@ -65,18 +65,18 @@ cannot do — while deep queries fall through to the full index. The manifest's
 
 | level | rows | places | alternative spellings |
 |---|---|---|---|
-| 0 | 6,359 | 353 | 6,006 |
+| 0 | 6,358 | 353 | 6,005 |
 | 1 | 68,821 | 4,362 | 64,459 |
-| 2 | 241,266 | 42,115 | 199,151 |
-| 3 | 439,276 | 164,756 | 274,520 |
-| 4 | 8,093,496 | 4,796,292 | 3,297,204 |
-| 5 | 629,561 | 397,416 | 232,145 |
+| 2 | 241,335 | 42,115 | 199,220 |
+| 3 | 439,250 | 164,756 | 274,494 |
+| 4 | 8,093,472 | 4,796,292 | 3,297,180 |
+| 5 | 629,762 | 397,416 | 232,346 |
 
 `dropped_unnamed: 0` — the build drops a place whose name folds to nothing,
 because it cannot be found by name, and **no place in this distribution does**.
 Every one of the 5,405,294 has a name.
 
-**7,221,629 of 9,478,779 rows have `is_point = true`**, meaning the place's
+**7,221,438 of 9,478,998 rows have `is_point = true`**, meaning the place's
 geometry in its boundary collection is a single point rather than a polygon.
 Most of Who's On First's localities come from GeoNames, which is a point
 gazetteer. Check this column before drawing an outline.
@@ -91,15 +91,15 @@ multilingual WOF is. Both distributions are assets of this collection.
 
 | `name_lang` | rows |
 |---|---|
-| `rus` | 475,906 |
+| `rus` | 475,886 |
 | `zho` | 366,124 |
-| `ukr` | 292,766 |
-| `fas` | 283,846 |
+| `ukr` | 292,699 |
+| `fas` | 284,191 |
 | `jpn` | 244,955 |
-| `deu` | 181,152 |
-| `kor` | 169,291 |
-| `urd` | 166,478 |
-| `heb` | 155,847 |
+| `deu` | 181,149 |
+| `kor` | 169,287 |
+| `urd` | 167,254 |
+| `heb` | 155,842 |
 | `hin` | 121,491 |
 
 A language value becomes a row only where its folded form differs from the
@@ -214,9 +214,9 @@ GROUP BY name_norm ORDER BY places DESC LIMIT 8;
 San Antonio  1,828
 סן אנטוניו  1,788
 Сан-Антоніо  1,770
-سان أنطونيو  1,765
 Сан-Антонио  1,765
-サンアントニオ  1,763
+سان أنطونيو  1,765
+サンアントニオ  1,765
 ```
 
 The join back to geometry, branching on `level`:

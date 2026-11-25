@@ -598,6 +598,11 @@ def manifest(index: dict, counts: dict) -> dict:
                 "size": full.stat().st_size,
                 "row_count": full_md.num_rows,
                 "row_groups": full_md.num_row_groups,
+                # The thrift footer plus its 8-byte trailer: the exactly-sized
+                # tail read a range client makes before any row group. Without
+                # it the client guesses, and on the 11.5 MB locality footer a
+                # wrong guess is a second round trip.
+                "footer_metadata_bytes": footer_bytes(full)[0],
             },
         }
         disp = display_path(collection)
@@ -608,6 +613,7 @@ def manifest(index: dict, counts: dict) -> dict:
                 "size": disp.stat().st_size,
                 "row_count": disp_md.num_rows,
                 "row_groups": disp_md.num_row_groups,
+                "footer_metadata_bytes": footer_bytes(disp)[0],
             }
         boundaries.append(entry)
 
@@ -633,6 +639,9 @@ def manifest(index: dict, counts: dict) -> dict:
             "row_groups": index["row_groups"],
             "row_group_rows": NAMES_ROW_GROUP_ROWS,
             "footer_bytes": footer,
+            # The same number under the name the `gazetteer` STAC extension
+            # and the other two gazetteer catalogs use for it.
+            "footer_metadata_bytes": footer,
             "page_index_bytes": page_index,
             "sorted_by": ["name_norm", "level", "country", "feature_id"],
             "feature_id_column": "feature_id",
